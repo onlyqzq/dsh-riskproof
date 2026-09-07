@@ -10,14 +10,8 @@
 - insert:
     - id: riskproof
       name: dsh-riskproof
-      # Defaults below are the schema defaults; uncomment to tune.
-      # config:
-      #   mode: enforce          # enforce | observe
-      #   policy:
-      #     preset: balanced     # permissive | balanced | strict
-      #     internalDomains: [acme.internal]
-      #     blockedDomains: [collector.evil.example]
-      #   classification:
-      #     overrides:
-      #       gmail_send: [EXTERNAL_ACTION]
-      #       company_db: [PRIVATE_ACCESS]
+      # Keep this explicit: DSH loader rows without a `config` key pass
+      # `undefined`, while RiskProof's defaults are defined for an object.
+      config: {}
+      # Override this row from the profile's cordis.patch.yml to tune policy;
+      # see docs/configuration.md in the package repository.

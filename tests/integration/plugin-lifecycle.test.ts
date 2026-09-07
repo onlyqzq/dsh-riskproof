@@ -32,9 +32,22 @@ function boot() {
 }
 
 describe("plugin lifecycle", () => {
+  it("defaults omitted config for direct runtime consumers", () => {
+    const runtime = new plugin.RiskProofRuntime(makeMockCtx(TOOLS));
+    expect(runtime.listProofs()).toEqual([]);
+    expect(runtime.proofStats().retained).toBe(0);
+  });
+
+  it("reports an actionable error for an incompatible tools service", () => {
+    const incompatible = { logger: () => ({}) } as unknown as Context;
+    expect(() => new plugin.RiskProofRuntime(incompatible)).toThrow(/expected ctx\.tools\.get/);
+  });
+
   it("boots with inject resolution and registers exactly one listener per event", async () => {
     const root = boot();
-    const fiber = root.plugin(plugin, {});
+    // DSH bundle rows may omit the config key entirely. This is the exact
+    // loader shape that regressed in dsh-riskproof 0.2.0.
+    const fiber = root.plugin(plugin);
     await fiber;
 
     expect(countLabels(fiber.getEffects(), 'ctx.on("tools/pre-execute")')).toBe(1);

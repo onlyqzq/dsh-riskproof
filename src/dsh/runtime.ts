@@ -15,7 +15,7 @@ import type {
 } from "@deepseek-ai/dsh-tools";
 import type { Agent } from "@deepseek-ai/dsh-agent";
 
-import type { RiskProofConfig } from "../config.js";
+import { resolveRiskProofConfig, type RiskProofConfig } from "../config.js";
 import type {
   SecurityCapability,
   SecurityDecision,
@@ -99,7 +99,17 @@ function argsAsRecord(args: unknown): Record<string, unknown> {
   return argumentsAsRecord(args);
 }
 
+function assertCompatibleHost(ctx: Context): void {
+  const tools = (ctx as unknown as { tools?: { get?: unknown } }).tools;
+  if (tools && typeof tools.get === "function") return;
+  throw new TypeError(
+    "dsh-riskproof: incompatible DSH Tool Runtime (expected ctx.tools.get()); " +
+    "use a supported DSH release or upgrade dsh-riskproof",
+  );
+}
+
 export class RiskProofRuntime {
+  private readonly config: RiskProofConfig;
   private readonly state: RuntimeState;
   private readonly proofStore: ProofStore;
   private readonly resolver: CapabilityResolver;
@@ -108,15 +118,17 @@ export class RiskProofRuntime {
 
   constructor(
     ctx: Context,
-    private readonly config: RiskProofConfig,
+    config?: RiskProofConfig,
   ) {
-    this.state = new RuntimeState(config);
+    assertCompatibleHost(ctx);
+    this.config = resolveRiskProofConfig(config);
+    this.state = new RuntimeState(this.config);
     this.proofStore = new ProofStore({
-      maxRecords: config.proof.maxRecords,
-      file: config.proof.file,
+      maxRecords: this.config.proof.maxRecords,
+      file: this.config.proof.file,
     });
-    this.resolver = new CapabilityResolver(ctx, normalizeOverrides(config.classification.overrides));
-    this.enginePolicy = buildEnginePolicy(config.policy);
+    this.resolver = new CapabilityResolver(ctx, normalizeOverrides(this.config.classification.overrides));
+    this.enginePolicy = buildEnginePolicy(this.config.policy);
     this.logger = ctx.logger("riskproof");
   }
 

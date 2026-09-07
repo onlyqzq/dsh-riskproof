@@ -37,7 +37,7 @@ export type { PolicyPreset, RiskProofConfig };
  * is fiber-owned: HMR or config reload disposes the previous instance before
  * activating the replacement, so no duplicate listener or tracker survives.
  */
-export function apply(ctx: Context, config: RiskProofConfig): void {
+export function apply(ctx: Context, config?: RiskProofConfig): void {
   const runtime = new RiskProofRuntime(ctx, config);
 
   ctx.on("tools/pre-execute", (exec, next) => runtime.preExecute(exec, next));

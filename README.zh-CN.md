@@ -44,13 +44,17 @@ RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 
 
 ```bash
 # 把插件加入某个 DSH profile
-dsh plugin --profile <profile> add dsh-riskproof
+dsh plugin --profile <profile> add dsh-riskproof@0.2.1
 
 # 确认包内 patch 已被组合
 dsh --profile <profile> --dump-config
 ```
 
 该包声明了 DSH bundle，`plugin add` 会自动组合其中的 `riskproof` 行，不需要再次手工插入。Schema 默认值已经是安全的；RiskProof 会静默追踪安全上下文，只有当出现危险的跨工具数据流时才会询问或拦截。
+
+0.2.1 已针对 DSH 0.1.0-rc.7、0.1.0-rc.8、0.1.1-rc.2 和
+0.1.2-rc.1 完成兼容性测试。明确指定此版本也可避免包管理器的 release-age
+策略继续解析到不兼容的 0.2.0。
 
 如需调整，可在随后加载的 profile `cordis.patch.yml` 中覆盖 bundle 行：
 

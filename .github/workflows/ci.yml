@@ -94,3 +94,69 @@ jobs:
             ));
             if (!manifest.dsh?.profile?.bundles?.includes('dsh-riskproof')) process.exit(1);
           "
+
+  dsh-compatibility:
+    name: DSH ${{ matrix.dsh-version }} profile boot
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh-version:
+          - 0.1.0-rc.7
+          - 0.1.0-rc.8
+          - 0.1.1-rc.2
+          - 0.1.2-rc.1
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.19"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Build the candidate tarball
+        run: |
+          mkdir -p "$RUNNER_TEMP/riskproof-pack"
+          npm pack --pack-destination "$RUNNER_TEMP/riskproof-pack"
+      - name: Install into a clean web profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global pnpm@11.19.0
+          export DSH_HOME="$RUNNER_TEMP/dsh-${{ matrix.dsh-version }}"
+          npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
+            plugin --profile web add "$RUNNER_TEMP"/riskproof-pack/dsh-riskproof-*.tgz
+          npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
+            --profile web --dump-config > "$RUNNER_TEMP/composed.yml"
+          grep -q 'name: dsh-riskproof' "$RUNNER_TEMP/composed.yml"
+          grep -A3 'name: dsh-riskproof' "$RUNNER_TEMP/composed.yml" | grep -q 'config: {}'
+      - name: Assert that the real plugin tree boots
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DSH_HOME="$RUNNER_TEMP/dsh-${{ matrix.dsh-version }}"
+          log="$RUNNER_TEMP/dsh-boot.log"
+          web_args=()
+          if [[ "${{ matrix.dsh-version }}" != "0.1.0-rc.7" ]]; then
+            web_args+=(--no-open)
+          fi
+          set +e
+          timeout --signal=INT 15s \
+            npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" --profile web "${web_args[@]}" \
+            > "$log" 2>&1
+          status=$?
+          set -e
+          if [[ $status -ne 0 && $status -ne 124 ]]; then
+            cat "$log"
+            exit "$status"
+          fi
+          if grep -Eq 'plugin tree failed to load|failed to apply loader entry riskproof|Cannot read properties of undefined' "$log"; then
+            cat "$log"
+            exit 1
+          fi
+          if ! grep -q 'dsh web:' "$log"; then
+            cat "$log"
+            echo "DSH did not reach the web startup marker" >&2
+            exit 1
+          fi

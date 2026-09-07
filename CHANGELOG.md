@@ -6,6 +6,15 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-07
+
+### Fixed
+
+- Boot with secure defaults when a DSH loader entry omits its `config` key.
+- Normalize and validate configuration again at the public runtime boundary for non-Cordis consumers.
+- Declare peer ranges that actually match the tested DSH rc.7, rc.8, 0.1.1-rc.2, and 0.1.2-rc.1 prerelease lines.
+- Exercise omitted-config startup and real DSH profile boot in compatibility CI.
+
 ## [0.2.0] — 2026-08-20
 
 ### Added

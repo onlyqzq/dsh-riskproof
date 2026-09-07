@@ -48,7 +48,7 @@ npm pack
 Then install into a fresh profile:
 
 ```bash
-DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.2.0.tgz
+DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.2.1.tgz
 DSH_HOME=/tmp/dsh-riskproof-smoke dsh --profile test --dump-config
 ```
 

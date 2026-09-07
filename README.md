@@ -44,13 +44,17 @@ RiskProof is a layer over the DSH Tool Runtime, not another Agent Runtime. It ne
 
 ```bash
 # add the plugin to a DSH profile
-dsh plugin --profile <profile> add dsh-riskproof
+dsh plugin --profile <profile> add dsh-riskproof@0.2.1
 
 # confirm the bundled patch was composed
 dsh --profile <profile> --dump-config
 ```
 
 The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. The schema defaults are safe; RiskProof silently tracks context and only asks or blocks when a risky cross-tool flow appears.
+
+Version 0.2.1 is tested with DSH 0.1.0-rc.7, 0.1.0-rc.8,
+0.1.1-rc.2, and 0.1.2-rc.1. Pinning this version also prevents a package
+manager release-age policy from resolving the incompatible 0.2.0 build.
 
 To tune it, override the bundled row from the profile's later `cordis.patch.yml` layer:
 

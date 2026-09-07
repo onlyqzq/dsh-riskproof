@@ -231,7 +231,19 @@ export const Config = z.transform(BaseConfig, (value) => {
     throw new TypeError("proof.file must be a non-empty path when configured");
   }
   return config;
-}, true);
+}, true).default({} as RiskProofConfig);
+
+/**
+ * Resolve configuration at the plugin boundary as well as through Cordis.
+ *
+ * Cordis normally applies `Config` before calling the plugin, but external
+ * loaders and programmatic consumers can call `apply`/`RiskProofRuntime`
+ * directly. Keeping this synchronous fallback here makes an omitted config
+ * safe without weakening validation for malformed configured values.
+ */
+export function resolveRiskProofConfig(value?: unknown): RiskProofConfig {
+  return z.resolve(value, Config, {})[0] as RiskProofConfig;
+}
 
 const DECISION_FIELDS = [
   "sensitiveExternalAction",

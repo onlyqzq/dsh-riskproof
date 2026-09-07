@@ -5,10 +5,11 @@ import {
   POLICY_DEFAULTS,
   POLICY_PRESETS,
   PROVENANCE_DEFAULTS,
+  resolveRiskProofConfig,
   type RiskProofConfig,
 } from "../../src/config.js";
 
-function resolve(raw: unknown): RiskProofConfig {
+function resolve(raw?: unknown): RiskProofConfig {
   return z.resolve(raw, Config, {})[0] as RiskProofConfig;
 }
 
@@ -22,6 +23,17 @@ describe("dsh-riskproof Config", () => {
     expect(config.policy.unlistedExternalAction).toBe("ask");
     expect(config.policy.preset).toBe("balanced");
     expect(config.proof.enabled).toBe(true);
+  });
+
+  it("applies every default when the loader omits config", () => {
+    const config = resolve();
+    expect(config.mode).toBe("enforce");
+    expect(config.policy.preset).toBe("balanced");
+    expect(config.proof).toEqual({ enabled: true, maxRecords: 1_000, file: undefined });
+  });
+
+  it("normalizes omitted config at the direct runtime boundary", () => {
+    expect(resolveRiskProofConfig().classification.overrides).toEqual({});
   });
 
   it("rejects an invalid mode enum", () => {

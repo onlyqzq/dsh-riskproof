@@ -1,4 +1,4 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -71,15 +71,22 @@ for (const dependency of [
   "@deepseek-ai/dsh-agent",
   "@deepseek-ai/dsh-tools",
 ]) {
-  requireCondition(
-    manifest.peerDependencies?.[dependency]?.includes("0.1.0-"),
-    `${dependency} must explicitly admit the DSH 0.1.0 prerelease line`,
-  );
+  const range = manifest.peerDependencies?.[dependency] ?? "";
+  for (const prereleaseLine of ["0.1.0-", "0.1.1-", "0.1.2-"]) {
+    requireCondition(
+      range.includes(prereleaseLine),
+      `${dependency} must explicitly admit the DSH ${prereleaseLine} prerelease line`,
+    );
+  }
 }
 
 if (patchPath) {
   try {
-    await access(resolve(root, patchPath));
+    const patch = await readFile(resolve(root, patchPath), "utf8");
+    requireCondition(
+      /^\s+config:\s*\{\}\s*$/m.test(patch),
+      "the bundled RiskProof row must pass an explicit empty config object",
+    );
   } catch {
     errors.push(`declared bundle patch does not exist: ${patchPath}`);
   }
