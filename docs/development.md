@@ -22,7 +22,8 @@ npm install
 | `npm run check:marketplace` | validate Awesome DSH Plugin-facing package metadata |
 | `npm run verify` | source/test typecheck + build + test |
 | `npm run test:coverage` | run tests and enforce coverage thresholds |
-| `npm run check:dsh` | install exact tarball, boot real DSH SDK, exercise commands and protection |
+| `npm run check:dsh` | install exact tarball, boot the real host, exercise commands and protection |
+| `npm run test:smoke-runner` | check legacy/RPC shutdown, timeouts and failure handling |
 | `npm run check:web` | isolated real DSH Web + Chrome acceptance; requires Playwright and browser |
 | `npm run pack:smoke` | build + `npm pack --dry-run` |
 
@@ -63,3 +64,10 @@ For browser prerequisites and fixture boundaries, see [validation](v0.3-validati
 Client lifecycle tests use jsdom (development only) and include async session switches,
 disconnects, inert metadata rendering and disposal. Browser acceptance separately validates
 the packaged module in DSH and Chrome. No client source is excluded from coverage.
+
+The installation smoke test inspects the composed profile for the SDK JSON-RPC server.
+Legacy DSH versions may treat `sdk` as a custom base profile without an RPC listener;
+they use the launcher's graceful SIGTERM path. SDK profiles require a shutdown response.
+Both paths require completed assertions, exit code 0, no terminating signal and no timeout.
+Use a direct DSH executable for `DSH_BIN`, not an `npx` wrapper. CI resolves that executable
+with `npx --package=... -- which dsh` and uploads per-version lifecycle evidence on failure.

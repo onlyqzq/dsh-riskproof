@@ -76,12 +76,14 @@ npm run check:dsh
 ```
 
 `check:dsh` creates a new temporary DSH home, installs the exact tarball into fresh Web
-and SDK profiles, verifies bundle composition, then boots the real SDK host over stdio.
+and SDK profiles, verifies bundle composition, then boots the real host. It detects whether the profile has an SDK RPC server;
+older base profiles close through the launcher’s graceful SIGTERM path.
 Its temporary fixture exercises the registered commands, four rehearsals, a blocked
 synthetic write (tool body must not run), the report tool, and a correlated receipt.
 It performs no model requests and does not use your existing profile or credentials.
 Evidence is written to `artifacts/dsh-install-check*.json` and `.log`.
-`DSH_BIN=/path/to/dsh npm run check:dsh` tests another installed host version.
+`DSH_BIN=/path/to/dsh npm run check:dsh` tests another installed host version; use the
+direct executable, not a shell wrapper around `npx`.
 
 For automated browser acceptance, install Playwright in your development environment and
 its Chromium browser, then run `npm run check:web`. If Playwright is installed elsewhere,

@@ -78,13 +78,14 @@
     "typecheck:test": "tsc -p tsconfig.test.json",
     "lint": "npm run typecheck && npm run typecheck:test",
     "check:marketplace": "node scripts/check-marketplace-readiness.mjs",
-    "verify": "npm run lint && npm run check:marketplace && npm run build && npm test",
+    "verify": "npm run lint && npm run check:marketplace && npm run build && npm test && npm run test:smoke-runner",
     "pack:smoke": "npm run build && npm pack --dry-run",
     "demo": "npm run build && node demo/run-attack-chain.mjs",
     "prepare": "npm run build",
     "prepublishOnly": "npm run verify",
     "check:dsh": "node scripts/check-dsh-install.mjs",
-    "check:web": "node scripts/check-web.mjs"
+    "check:web": "node scripts/check-web.mjs",
+    "test:smoke-runner": "node --test scripts/tests/smoke-process.test.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

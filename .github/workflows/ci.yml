@@ -36,6 +36,8 @@ jobs:
         run: npm run typecheck:test
       - name: Build
         run: npm run build
+      - name: Smoke runner lifecycle regressions
+        run: npm run test:smoke-runner
       - name: Unit + integration + security regression tests
         run: npm run test:coverage
 
@@ -164,12 +166,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/dsh-bin"
-          cat > "$RUNNER_TEMP/dsh-bin/dsh" <<'SH'
-          #!/bin/sh
-          exec npx --yes "@deepseek-ai/dsh@${RISKPROOF_HOST_VERSION}" "$@"
-          SH
-          chmod +x "$RUNNER_TEMP/dsh-bin/dsh"
-          export RISKPROOF_HOST_VERSION="${{ matrix.dsh-version }}"
-          export DSH_BIN="$RUNNER_TEMP/dsh-bin/dsh"
+          # Resolve npm's installed binary once. Keep npx out of the long-lived
+          # stdio/signal path so the smoke runner controls the DSH process itself.
+          export DSH_BIN="$(npx --yes --package="@deepseek-ai/dsh@${{ matrix.dsh-version }}" -- which dsh)"
+          test -x "$DSH_BIN"
+          test "$("$DSH_BIN" --version)" = "${{ matrix.dsh-version }}"
           node scripts/check-dsh-install.mjs "$RUNNER_TEMP"/riskproof-pack/dsh-riskproof-*.tgz
+      - name: Upload host lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dsh-check-${{ matrix.dsh-version }}
+          path: artifacts/dsh-*
+          if-no-files-found: ignore
