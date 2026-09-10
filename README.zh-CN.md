@@ -1,12 +1,46 @@
 # RiskProof
 
-**面向 DeepSeek Harness 的来源感知型 Agent 执行安全插件。**
+**让你看见 AI 读了什么来源、拦下了什么风险、操作最终是否执行。**
 
-追踪工具输入从哪里来。发现跨工具的敏感数据流。在副作用发生前阻止危险行为。
+DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次工具调用留下可解释的执行证据。
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 ---
+
+## 在对话旁，看见防护正在工作
+
+安装后，DSH 右下方常驻 **RiskProof 安全浮标**。正常聊天无需输入任何命令：
+工具调用发生后，浮标自动更新检查与拦截状态；点击浮标才展开安全概览。
+
+![DSH 中的常驻安全浮标](docs/assets/riskproof-web-beacon.png)
+
+- **空闲时待命**：等待真实工具调用，不播放持续扫描动画。
+- **调用时反馈**：等待执行回执时显示工作状态，新检查完成后短暂反馈。
+- **风险可追溯**：点击查看调用分布圆环、最近 24 次活动及最多 3 条风险来源链。
+- **会话独立**：切换对话立即切换记录；连接中断时隐藏旧图表并提示等待同步。
+
+![当前对话的调用分布与风险来源链](docs/assets/riskproof-web-trace.png)
+
+*真实 DSH Web 界面；截图数据由本地测试模型驱动真实工具管线产生。插件日常使用无需模拟演练。*
+
+图表展示“未触发风险 / RiskProof 拦截 / 需要关注”，不生成安全评分。
+观察模式明确显示“不主动拦截”；记录关闭或部分检测停用时也会提示。
+统计仅覆盖本次运行仍保留的当前会话记录，未触发规则不等于绝对安全。
+
+以下命令保留为辅助入口；完整文字默认折叠，日常使用直接点击浮标即可。
+
+| 需要做什么 | DSH 命令 |
+| --- | --- |
+| 打开安全概览 | `/riskproof` |
+| 查看文字来源记录 | `/riskproof trace` |
+| 限制为只读任务 | `/riskproof task read-only` |
+| 限制为本地任务 | `/riskproof task local-only` |
+| 恢复常规任务范围 | `/riskproof task standard` |
+| 可选的四项模拟演练 | `/riskproof demo` |
+
+也可让模型调用 `riskproof_report` 查看原生工具结果卡。浮标通过 DSH 自带的认证连接读取
+脱敏统计，页面可见时约每秒更新，不调用模型、不增加工具记录、不消耗模型 token。
 
 ## RiskProof 回答的问题
 
@@ -43,18 +77,19 @@ RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 
 ## 快速开始
 
 ```bash
-# 把插件加入某个 DSH profile
-dsh plugin --profile <profile> add dsh-riskproof@0.2.1
+# 在本仓库中构建并安装候选版
+mkdir -p artifacts
+npm pack --pack-destination artifacts
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
 
 # 确认包内 patch 已被组合
-dsh --profile <profile> --dump-config
+dsh --profile web --dump-config
 ```
 
-该包声明了 DSH bundle，`plugin add` 会自动组合其中的 `riskproof` 行，不需要再次手工插入。Schema 默认值已经是安全的；RiskProof 会静默追踪安全上下文，只有当出现危险的跨工具数据流时才会询问或拦截。
+该包声明了 DSH bundle，`plugin add` 自动组合 `riskproof` 行。重启该 profile 后，即可看到常驻安全浮标；点击查看当前对话概览。支持原生命令的界面也可通过 `/` 搜索 RiskProof。
 
-0.2.1 已针对 DSH 0.1.0-rc.7、0.1.0-rc.8、0.1.1-rc.2 和
-0.1.2-rc.1 完成兼容性测试。明确指定此版本也可避免包管理器的 release-age
-策略继续解析到不兼容的 0.2.0。
+当前工作区为 **0.3.0 发布候选版，尚未发布到 npm**。发布前请使用 [本地安装包方式](docs/installation.md)。
+已验证 DSH 0.1.0-rc.7 与 0.1.2-rc.1 的安装、SDK 宿主启动、命令和工具管线；DSH 0.1.2-rc.1 的 Chrome 桌面与窄屏 Web 验收已通过，含真实 Agent 工具管线的来源拦截和只读拦截（本地模拟模型驱动）。详见 [验收记录](docs/v0.3-validation.md) 和 [Web 操作步骤](docs/web-acceptance.zh-CN.md)。
 
 如需调整，可在随后加载的 profile `cordis.patch.yml` 中覆盖 bundle 行：
 
@@ -179,6 +214,8 @@ RiskProof **不能替代**：
 ## 文档
 
 - [安装](docs/installation.md)
+- [v0.3 产品迭代与榜单调研](docs/v0.3-product-upgrade.md)
+- [v0.3 验收记录](docs/v0.3-validation.md)
 - [架构](docs/architecture.md)
 - [安全模型](docs/security-model.md)
 - [来源与污点](docs/provenance.md)
@@ -191,7 +228,7 @@ RiskProof **不能替代**：
 
 ## 路线图
 
-### v0.2（当前）
+### v0.2（已完成）
 
 - DSH 原生运行时（`tools/pre-execute`、`tools/result`）
 - 来源 + 污点追踪
@@ -200,11 +237,13 @@ RiskProof **不能替代**：
 - 策略预设、敏感路径门控、确定性危险命令检测和出口域名策略
 - 处置建议与按规则聚合的 proof 统计
 
-### v0.3
+### v0.3（当前候选版）
 
-- 工具身份连续性
-- 任务感知策略
-- 执行回执
+- 原生安全账单、来源时间线、无副作用演练与中英文报告
+- 工具元数据身份连续性：描述、输入／输出 schema 变化时拒绝
+- 操作者设定的任务约束：standard / read-only / local-only
+- 按执行 token 关联门控与最终结果的回执
+- 中间工具结果继承敏感标签；会话隔离与有界状态
 
 ### 后续
 

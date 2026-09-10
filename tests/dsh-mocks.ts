@@ -14,10 +14,16 @@ export function makeMockCtx(
   toolDefs: Record<string, MockToolDef> = {},
   scopedToolDefs: Record<string, Record<string, MockToolDef>> = {},
 ): Context {
+  const registered = new Map<string, unknown>();
   const logger = { warn: () => {}, info: () => {}, error: () => {}, debug: () => {} };
   return {
     tools: {
+      register(definition: { name: string }) {
+        registered.set(definition.name, definition);
+        return () => registered.delete(definition.name);
+      },
       get(name: string, agent?: { id?: string }): MockToolDef & { name: string } | undefined {
+        if (registered.has(name)) return registered.get(name) as MockToolDef & { name: string };
         const scoped = agent?.id ? scopedToolDefs[agent.id] : undefined;
         const def = scoped && Object.hasOwn(scoped, name)
           ? scoped[name]

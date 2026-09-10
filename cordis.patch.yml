@@ -4,8 +4,8 @@
 #
 # RiskProof hooks `tools/pre-execute` (allow/ask/deny before dispatch) and
 # `tools/result` (provenance + toolchain state). It is a passive layer over the
-# Tool Runtime: it does not register tools of its own, so row order carries no
-# load semantics.
+# Tool Runtime, plus a read-only report tool and an optional native /riskproof
+# command. The command activates when the host commands service is available.
 
 - insert:
     - id: riskproof

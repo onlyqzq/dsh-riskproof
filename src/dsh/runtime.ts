@@ -14,6 +14,9 @@ import type {
   ToolExecutionResult,
 } from "@deepseek-ai/dsh-tools";
 import type { Agent } from "@deepseek-ai/dsh-agent";
+import { createHash } from "node:crypto";
+import { toolFingerprint } from "../core/identity.js";
+import type { ExecutionReceipt, TaskMode } from "../core/types.js";
 
 import { resolveRiskProofConfig, type RiskProofConfig } from "../config.js";
 import type {
@@ -109,6 +112,8 @@ function assertCompatibleHost(ctx: Context): void {
 }
 
 export class RiskProofRuntime {
+  private readonly diagnostics = new Map<string, unknown>();
+  private readonly pending = new Map<symbol, { proofId: string; agentId?: string; started: number; gate: ExecutionReceipt["gate"] }>();
   private readonly config: RiskProofConfig;
   private readonly state: RuntimeState;
   private readonly proofStore: ProofStore;
@@ -117,7 +122,7 @@ export class RiskProofRuntime {
   private readonly logger: ReturnType<Context["logger"]>;
 
   constructor(
-    ctx: Context,
+    private readonly ctx: Context,
     config?: RiskProofConfig,
   ) {
     assertCompatibleHost(ctx);
@@ -134,12 +139,15 @@ export class RiskProofRuntime {
 
   /** `tools/pre-execute` waterfall listener body. */
   async preExecute(exec: ToolExecution, next: () => Promise<PreToolDecision>): Promise<PreToolDecision> {
+    if (this.isDiagnostic(exec)) return next();
     const decision = this.evaluate(exec);
     const proofId = this.recordProof(exec, decision);
     const guidance = decision.remediations.slice(0, 2).join(" ");
-    const reasonParts = [decision.reason];
+    const reasonParts = ["RiskProof", decision.reason];
+    const sources = decision.sources.map((source) => source.tool);
+    if (sources.length) reasonParts.push(`Source / 来源: ${[...new Set(sources)].join(" → ")} → ${exec.name}`);
     if (guidance) reasonParts.push(`Recommended action: ${guidance}`);
-    if (proofId) reasonParts.push(`proof ${proofId}`);
+    if (proofId) reasonParts.push(`proof ${proofId}; /riskproof trace`);
     const reason = reasonParts.join("; ");
     const mine = decisionToPreToolDecision(decision.decision, reason);
 
@@ -149,19 +157,41 @@ export class RiskProofRuntime {
       );
     }
 
-    if (this.config.mode === "observe") {
-      return next();
+    try {
+      const effective = this.config.mode === "observe" || mine.kind === "allow"
+        ? await next()
+        : mine.kind === "deny" ? mine : mergePreToolDecisions(mine, await next());
+      if (proofId) {
+        const receipt: ExecutionReceipt = {
+          gate: effective.kind,
+          outcome: effective.kind === "deny" ? "blocked" : "pending",
+        };
+        this.settle(proofId, receipt);
+        if (this.pending.size >= this.config.proof.maxRecords) {
+          this.pending.delete(this.pending.keys().next().value!);
+        }
+        this.pending.set(exec.token, { proofId, agentId: exec.agent?.id, started: Date.now(), gate: effective.kind });
+      }
+      return effective;
+    } catch (error) {
+      if (proofId) this.settle(proofId, { gate: "error", outcome: "error" });
+      throw error;
     }
-
-    // Monotonic coexistence: allow delegates, deny vetoes, ask merges.
-    if (mine.kind === "allow") return next();
-    if (mine.kind === "deny") return mine;
-    const downstream = await next();
-    return mergePreToolDecisions(mine, downstream);
   }
 
   /** `tools/result` observer body. */
   onResult(exec: ToolExecution, result: ToolExecutionResult): undefined {
+    if (this.isDiagnostic(exec)) return undefined;
+    const pending = this.pending.get(exec.token);
+    if (pending) {
+      this.pending.delete(exec.token);
+      this.settle(pending.proofId, {
+        gate: pending.gate,
+        outcome: pending.gate === "deny" ? "blocked" : result.isError ? "error" : "succeeded",
+        completedAt: new Date().toISOString(),
+        durationMs: Math.max(0, Date.now() - pending.started),
+      });
+    }
     // Only authoritative success may record "data obtained". Failures never do.
     if (result.isError) return undefined;
 
@@ -170,7 +200,10 @@ export class RiskProofRuntime {
     const kind = inferKindFromTool(exec.name, capabilities);
     let contextIds: string[] = [];
     try {
-      const entry = session.tracker.record(kind, result.value, exec.name, detectValueTaints(result.value));
+      const mapped = session.mapper.mapArguments(argsAsRecord(exec.arguments));
+      const inherited = this.config.taint.enabled
+        ? Object.values(enrichArgumentTaints(argsAsRecord(exec.arguments), mapped.provenance, mapped.taints)).flat() : [];
+      const entry = session.tracker.record(kind, result.value, exec.name, [...inherited, ...detectValueTaints(result.value)]);
       if (entry) contextIds = [entry.id];
     } catch (error) {
       this.logger.warn(`could not index result from tool '${exec.name}': ${safeErrorMessage(error)}`);
@@ -190,6 +223,9 @@ export class RiskProofRuntime {
   /** Remove a disposed agent's session state. */
   disposeAgent(agentId: string): void {
     this.state.dispose(agentId);
+    for (const [token, pending] of this.pending) {
+      if (pending.agentId === agentId) this.pending.delete(token);
+    }
   }
 
   /** Proofs recorded by this plugin instance (for diagnostics / tests). */
@@ -202,9 +238,50 @@ export class RiskProofRuntime {
     return this.proofStore.stats();
   }
 
-  private evaluate(exec: ToolExecution): SecurityDecision {
+  /** Only return records for the caller's exact live agent scope. */
+  report(agentId: string | undefined) {
+    const session = this.state.peek(agentId);
+    return {
+      mode: this.config.mode,
+      preset: this.config.policy.preset,
+      language: this.config.experience?.language ?? "zh-CN",
+      taskMode: session?.taskMode ?? this.config.task?.mode ?? "standard",
+      proofEnabled: this.config.proof.enabled,
+      provenanceEnabled: this.config.provenance.enabled,
+      taintEnabled: this.config.taint.enabled,
+      toolchainEnabled: this.config.toolchain.enabled,
+      persistent: !!this.config.proof.file,
+      limit: this.config.proof.maxRecords,
+      proofs: this.proofStore.list().filter((proof) => session !== undefined && proof.scopeId === session.scopeId),
+    };
+  }
+
+  /** Operator-only adapter calls this; never exposed as an agent tool. */
+  setTaskMode(agentId: string, mode: TaskMode): void {
+    if (!["standard", "read-only", "local-only"].includes(mode)) throw new TypeError("invalid task scope");
+    this.state.get(agentId).taskMode = mode;
+  }
+
+  markDiagnostic(name: string): void {
+    this.diagnostics.set(name, this.ctx.tools.get(name)?.execute);
+  }
+
+  private isDiagnostic(exec: ToolExecution): boolean {
+    const registered = this.diagnostics.get(exec.name);
+    return registered !== undefined && registered === this.ctx.tools.get(exec.name, exec.agent)?.execute;
+  }
+
+  private settle(proofId: string, receipt: ExecutionReceipt): void {
+    try { this.proofStore.settle(proofId, receipt); }
+    catch { this.logger.warn("could not persist RiskProof execution receipt"); }
+  }
+
+  private evaluate(exec: ToolExecution): SecurityDecision & Required<Pick<SecurityProof, "identity" | "sources">> {
     const capabilities = this.resolver.resolve(exec.name, exec.agent);
     const session = this.state.get(exec.agent?.id);
+    const definition = this.ctx.tools.get(exec.name, exec.agent) ?? this.ctx.tools.get(exec.name);
+    const digest = toolFingerprint(definition ?? { name: exec.name });
+    const identityStatus = session.identity.check(exec.name, digest);
     const args = argsAsRecord(exec.arguments);
 
     let provenance = Object.create(null) as Record<string, string[]>;
@@ -222,6 +299,8 @@ export class RiskProofRuntime {
       : EMPTY_TOOLCHAIN_STATE;
 
     const context: ToolSecurityContext = {
+      identityStatus,
+      taskMode: session.taskMode,
       tool: { name: exec.name, capabilities },
       args,
       provenance,
@@ -234,16 +313,27 @@ export class RiskProofRuntime {
       internalDomains: this.config.policy.internalDomains,
     };
 
-    return evaluate(context, this.enginePolicy);
+    const sourceIds = new Set(Object.values(provenance).flat());
+    return {
+      ...evaluate(context, this.enginePolicy),
+      identity: { digest, status: identityStatus },
+      sources: session.tracker.list().filter((entry) => sourceIds.has(entry.id))
+        .map((entry) => ({ id: entry.id, tool: entry.label ?? "tool", taints: entry.taints })),
+    };
   }
 
-  private recordProof(exec: ToolExecution, decision: SecurityDecision): string | undefined {
+  private recordProof(exec: ToolExecution, decision: SecurityDecision & Required<Pick<SecurityProof, "identity" | "sources">>): string | undefined {
     if (!this.config.proof.enabled) return undefined;
     const proof: SecurityProof = {
+      scopeId: this.state.get(exec.agent?.id).scopeId,
+      mode: this.config.mode,
+      taskMode: this.state.get(exec.agent?.id).taskMode,
+      identity: decision.identity,
+      sources: decision.sources,
       proofId: newProofId(exec.name, decision.decision, decision.timestamp),
       tool: exec.name,
       capabilities: this.resolver.resolve(exec.name, exec.agent),
-      callId: String(exec.callId),
+      callId: createHash("sha256").update(this.state.get(exec.agent?.id).scopeId + String(exec.callId)).digest("hex").slice(0, 24),
       nested: exec.parent !== undefined,
       decision: decision.decision,
       riskLevel: decision.riskLevel,

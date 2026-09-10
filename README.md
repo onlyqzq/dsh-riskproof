@@ -8,6 +8,44 @@ Track where tool inputs came from. Detect risky cross-tool data flows. Stop sens
 
 ---
 
+## See protection beside your conversation
+
+A persistent **RiskProof security beacon** sits beside the DSH conversation. Ordinary tool
+calls update it automatically. Click to open a compact overview; activity never opens it for you.
+
+![Persistent RiskProof beacon](docs/assets/riskproof-web-beacon.png)
+
+- Waits honestly for tool activity; there is no continuous simulated scan.
+- Shows pending execution receipts and briefly acknowledges newly checked calls.
+- Displays a call-distribution ring, the last 24 checks and up to three recent risk chains.
+- Follows the selected conversation and removes stale charts when its connection is unavailable.
+
+![Live call distribution and provenance](docs/assets/riskproof-web-trace.png)
+
+*Real DSH Web screenshots; a local test model produced these records through the actual
+Agent/tool pipeline. Normal use does not require a rehearsal.*
+
+The chart counts calls with no triggered risk, calls blocked by RiskProof, and calls needing
+attention. It does not invent a safety score. Observe mode, disabled recording and disabled
+detection features are identified. Counts cover retained records in the current plugin run.
+Not triggering a rule does not establish that an operation is safe.
+
+Commands remain secondary entries; long output is collapsed by default:
+
+| Need | DSH command |
+| --- | --- |
+| Open the compact overview | `/riskproof` |
+| Read the text provenance report | `/riskproof trace` |
+| Restrict to inspection | `/riskproof task read-only` |
+| Keep tool capabilities local | `/riskproof task local-only` |
+| Restore ordinary task scope | `/riskproof task standard` |
+| Optional isolated rehearsals | `/riskproof demo` |
+
+The model can also call the read-only `riskproof_report` tool. The beacon reads redacted
+statistics through DSH's authenticated connection about once per second while the page is
+visible. It makes no model requests and creates no tool records. The current beacon uses
+Chinese labels; command/tool text supports Chinese and English (`experience.language: en`).
+
 ## What RiskProof answers
 
 Most tool-permission plugins answer one question: *is this tool allowed?*
@@ -43,18 +81,23 @@ RiskProof is a layer over the DSH Tool Runtime, not another Agent Runtime. It ne
 ## Quick Start
 
 ```bash
-# add the plugin to a DSH profile
-dsh plugin --profile <profile> add dsh-riskproof@0.2.1
+# build and install the candidate from this checkout
+mkdir -p artifacts
+npm pack --pack-destination artifacts
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
 
 # confirm the bundled patch was composed
-dsh --profile <profile> --dump-config
+dsh --profile web --dump-config
 ```
 
-The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. The schema defaults are safe; RiskProof silently tracks context and only asks or blocks when a risky cross-tool flow appears.
+The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. Restart the profile to see the beacon, then click it to inspect the current conversation.
 
-Version 0.2.1 is tested with DSH 0.1.0-rc.7, 0.1.0-rc.8,
-0.1.1-rc.2, and 0.1.2-rc.1. Pinning this version also prevents a package
-manager release-age policy from resolving the incompatible 0.2.0 build.
+This workspace is the **0.3.0 release candidate, not yet published to npm**. Before publication,
+use the [local tarball instructions](docs/installation.md). Installation, SDK host startup,
+commands and tool execution have been verified on DSH 0.1.0-rc.7 and 0.1.2-rc.1.
+Chrome desktop and narrow-viewport Web acceptance also passed on DSH 0.1.2-rc.1,
+including provenance and read-only denials through the real Agent loop with a local
+simulated model. See [validation evidence](docs/v0.3-validation.md).
 
 To tune it, override the bundled row from the profile's later `cordis.patch.yml` layer:
 
@@ -187,6 +230,8 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 ## Documentation
 
 - [Installation](docs/installation.md)
+- [v0.3 product research](docs/v0.3-product-upgrade.md)
+- [v0.3 validation](docs/v0.3-validation.md)
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security-model.md)
 - [Provenance & taint](docs/provenance.md)
@@ -199,7 +244,7 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 
 ## Roadmap
 
-### v0.2 (current)
+### v0.2 (delivered)
 
 - DSH-native runtime (`tools/pre-execute`, `tools/result`)
 - Provenance + taint tracking
@@ -208,11 +253,13 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 - Policy presets, sensitive-path gates, deterministic command-risk checks, and egress domain policy
 - Remediation guidance and per-rule proof statistics
 
-### v0.3
+### v0.3 (current candidate)
 
-- Tool identity continuity
-- Task-aware policy
-- Execution receipts
+- Native security receipts, provenance timeline, bilingual reports and safe rehearsals
+- Tool metadata continuity: description and input/output schema fingerprints
+- Operator-selected task contracts: standard / read-only / local-only
+- Execution-token correlation between policy gates and final results
+- Taint inheritance through intermediate tools; bounded, isolated session state
 
 ### Later
 

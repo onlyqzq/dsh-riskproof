@@ -127,6 +127,8 @@ export interface RiskProofPolicy extends Record<string, unknown> {
 }
 
 export interface RiskProofConfig {
+  experience?: { language: "zh-CN" | "en" };
+  task?: { mode: import("./core/types.js").TaskMode };
   mode: "observe" | "enforce";
   provenance: typeof PROVENANCE_DEFAULTS;
   taint: { enabled: boolean };
@@ -153,6 +155,12 @@ const policyList = z.array(z.string())
   .default([]);
 
 const BaseConfig = z.object({
+  experience: z.object({
+    language: z.union([z.const("zh-CN"), z.const("en")]).default("zh-CN"),
+  }).default({ language: "zh-CN" }),
+  task: z.object({
+    mode: z.union([z.const("standard"), z.const("read-only"), z.const("local-only")]).default("standard"),
+  }).default({ mode: "standard" }),
   /** observe records + warns without changing execution; enforce applies the decision. */
   mode: z.union([z.const("observe"), z.const("enforce")]).default("enforce"),
 

@@ -35,6 +35,7 @@ export type TaintLabel =
 export type Decision = "allow" | "require_approval" | "deny";
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
+export type TaskMode = "standard" | "read-only" | "local-only";
 
 export const ALL_CAPABILITIES: readonly SecurityCapability[] = [
   "EXTERNAL_INGESTION",
@@ -117,6 +118,8 @@ export interface ExecutionIdentity {
 
 /** The complete, deterministic input the engine evaluates. */
 export interface ToolSecurityContext {
+  identityStatus?: import("./identity.js").IdentityStatus;
+  taskMode?: TaskMode;
   tool: ToolSecurityDescriptor;
   /** Lossless JSON arguments (already parsed and validated by the tool registry). */
   args: Record<string, unknown>;
@@ -160,6 +163,13 @@ export interface SecurityDecision {
 
 /** Privacy-preserving durable proof (never raw args/results/credentials). */
 export interface SecurityProof {
+  /** Opaque, instance-local session correlation; never a raw agent id. */
+  scopeId?: string;
+  mode?: "observe" | "enforce";
+  taskMode?: TaskMode;
+  identity?: { digest: string; status: import("./identity.js").IdentityStatus };
+  sources?: Array<{ id: string; tool: string; taints: TaintLabel[] }>;
+  receipt?: ExecutionReceipt;
   proofId: string;
   tool: string;
   capabilities: SecurityCapability[];
@@ -179,6 +189,13 @@ export interface SecurityProof {
   reason: string;
   remediations: string[];
   timestamp: string;
+}
+
+export interface ExecutionReceipt {
+  gate: "allow" | "ask" | "deny" | "error";
+  outcome: "pending" | "blocked" | "succeeded" | "error";
+  completedAt?: string;
+  durationMs?: number;
 }
 
 /** Strictest-decision ordering helpers. */

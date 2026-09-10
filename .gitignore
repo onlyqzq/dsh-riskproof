@@ -49,3 +49,6 @@ Thumbs.db
 # ── Logs ───────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
+
+# Local install verification outputs
+artifacts/

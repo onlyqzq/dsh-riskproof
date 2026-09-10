@@ -22,6 +22,8 @@ import {
   type RiskProofConfig,
 } from "./config.js";
 import { RiskProofRuntime } from "./dsh/runtime.js";
+import { installDashboard } from "./dsh/dashboard.js";
+import { installExperience } from "./dsh/experience.js";
 
 /** Cordis plugin name (used by loader diagnostics). */
 export const name = "riskproof";
@@ -44,6 +46,8 @@ export function apply(ctx: Context, config?: RiskProofConfig): void {
   ctx.on("tools/result", (exec, result) => runtime.onResult(exec, result));
   ctx.on("tools/change", () => runtime.onToolsChange());
   ctx.on("agent/disposed", (payload) => runtime.disposeAgent(payload.agent.id));
+  installExperience(ctx, runtime);
+  installDashboard(ctx, runtime);
 }
 
 // Re-export the runtime for programmatic embedding and local demos.

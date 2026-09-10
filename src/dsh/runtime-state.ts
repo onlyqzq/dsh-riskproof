@@ -10,8 +10,14 @@ import type { RiskProofConfig } from "../config.js";
 import { ContextTracker } from "../provenance/context-tracker.js";
 import { ProvenanceMapper } from "../provenance/mapper.js";
 import { ToolchainGuard } from "../toolchain/guard.js";
+import { randomUUID } from "node:crypto";
+import { ToolIdentityTracker } from "../core/identity.js";
+import type { TaskMode } from "../core/types.js";
 
 export interface SessionState {
+  scopeId: string;
+  identity: ToolIdentityTracker;
+  taskMode: TaskMode;
   tracker: ContextTracker;
   mapper: ProvenanceMapper;
   guard: ToolchainGuard;
@@ -27,23 +33,19 @@ export class RuntimeState {
 
   constructor(private readonly config: RiskProofConfig) {}
 
+  peek(agentId: string | undefined): SessionState | undefined {
+    return this.sessions.get(agentId ?? GLOBAL_SCOPE);
+  }
+
   get(agentId: string | undefined): SessionState {
     const key = agentId ?? GLOBAL_SCOPE;
     const existing = this.sessions.get(key);
     if (existing) return existing;
 
-    // Bound concurrent sessions: evict the oldest so memory stays bounded even
-    // if disposal notifications are ever missed.
+    // Dropping live state would silently forget identity pins and task limits.
+    // Fail closed at capacity; normal agent disposal releases the slot.
     if (this.sessions.size >= MAX_SESSIONS) {
-      const oldest = this.sessions.keys().next().value as string | undefined;
-      if (oldest !== undefined) {
-        const evicted = this.sessions.get(oldest);
-        if (evicted) {
-          evicted.tracker.clear();
-          evicted.guard.clear();
-        }
-        this.sessions.delete(oldest);
-      }
+      throw new Error("RiskProof session capacity reached; close unused sessions before starting another.");
     }
 
     const tracker = new ContextTracker({
@@ -53,6 +55,9 @@ export class RuntimeState {
       minMatchLength: this.config.provenance.minMatchLength,
     });
     const session: SessionState = {
+      scopeId: randomUUID(),
+      identity: new ToolIdentityTracker(),
+      taskMode: this.config.task?.mode ?? "standard",
       tracker,
       mapper: new ProvenanceMapper(tracker),
       guard: new ToolchainGuard({

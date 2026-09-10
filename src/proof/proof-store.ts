@@ -13,7 +13,7 @@
 import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { SecurityProof } from "../core/types.js";
+import type { ExecutionReceipt, SecurityProof } from "../core/types.js";
 import { redactProof } from "./redaction.js";
 
 export interface ProofStoreOptions {
@@ -71,6 +71,16 @@ export class ProofStore {
 
   list(): SecurityProof[] {
     return this.records.map(cloneProof);
+  }
+
+  /** JSONL is append-only: receipt events refer to the original proof id. */
+  settle(proofId: string, receipt: ExecutionReceipt): void {
+    const proof = this.records.find((record) => record.proofId === proofId);
+    if (!proof) return;
+    proof.receipt = structuredClone(receipt);
+    if (this.file) appendFileSync(this.file, JSON.stringify({
+      type: "riskproof/receipt", proofId, receipt,
+    }) + "\n", { encoding: "utf-8", mode: 0o600, flag: "a" });
   }
 
   /** The most recent proofs, newest last. */

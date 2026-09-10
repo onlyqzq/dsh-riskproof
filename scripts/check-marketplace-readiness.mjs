@@ -49,6 +49,16 @@ requireCondition(
   "prepare must build source installs",
 );
 
+requireCondition(
+  manifest.exports?.["./client"]?.default === "./dist/client.js",
+  "the browser report bundle must have a client export",
+);
+requireCondition(
+  manifest.dsh?.client?.platform === "web" &&
+    manifest.dsh?.client?.inject?.includes("@deepseek-ai/dsh-client-ui-commands"),
+  "the browser report must declare its Web command UI dependency",
+);
+
 const misplacedOfficialDependencies = Object.keys(manifest.dependencies ?? {})
   .filter((name) => name.startsWith("@deepseek-ai/"));
 requireCondition(

@@ -4,6 +4,24 @@ All notable changes to RiskProof are documented here.
 
 The project follows [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — candidate (unpublished)
+
+- Add native `/riskproof` security receipts, provenance timeline, bilingual report tool,
+  and four isolated protection rehearsals that do not execute side effects.
+- Add a persistent live Web security beacon with an opt-in compact overview, call-distribution
+  chart, recent activity and three risk provenance chains. No automatic modal or simulated scan.
+- Read redacted current-session statistics over the authenticated DSH RPC connection;
+  clear stale state on session changes and connection loss. Status reads allocate no security state.
+- Pin per-agent tool metadata fingerprints and deny changed descriptions/input/output schemas.
+- Add operator-selected read-only/local-only task contracts; no policy-changing agent tool.
+- Correlate gate decisions with final outcomes by runtime token; append JSONL receipt events.
+- Carry input taints through intermediate tool results; keep report calls out of live counts.
+- Fail closed at live-session capacity rather than silently dropping security state.
+- Add reproducible exact-tarball DSH installation and SDK-host functional smoke checks.
+- Verify Chrome Web live updates, pending receipts, desktop/mobile charts, actual Agent tool denials
+  and receipts using a deterministic local model fixture; retain screenshots and package hashes.
+- Update first-use documentation, screenshots and product messaging. This candidate is not published.
+
 ## [Unreleased]
 
 ## [0.2.1] — 2026-09-07

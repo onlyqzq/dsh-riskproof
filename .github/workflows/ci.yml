@@ -160,3 +160,16 @@ jobs:
             echo "DSH did not reach the web startup marker" >&2
             exit 1
           fi
+      - name: Exercise installed commands, report tool, task contract and receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dsh-bin"
+          cat > "$RUNNER_TEMP/dsh-bin/dsh" <<'SH'
+          #!/bin/sh
+          exec npx --yes "@deepseek-ai/dsh@${RISKPROOF_HOST_VERSION}" "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/dsh-bin/dsh"
+          export RISKPROOF_HOST_VERSION="${{ matrix.dsh-version }}"
+          export DSH_BIN="$RUNNER_TEMP/dsh-bin/dsh"
+          node scripts/check-dsh-install.mjs "$RUNNER_TEMP"/riskproof-pack/dsh-riskproof-*.tgz

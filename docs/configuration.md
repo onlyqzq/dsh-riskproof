@@ -150,3 +150,32 @@ Configuration fails at plugin load when a value is out of range or inconsistent:
 | Each policy list entry | 512 characters |
 
 `maxEntryBytes` cannot exceed `maxTotalBytes`, and `chainWindow` cannot exceed `maxEvents`.
+
+## v0.3: visible reports and operator task contracts
+
+```yaml
+- id: riskproof
+  config:
+    experience:
+      language: zh-CN       # zh-CN (default) | en
+    task:
+      mode: standard        # standard | read-only | local-only
+```
+
+`/riskproof task <mode>` changes only the calling live agent's task contract. New sessions,
+subsessions and plugin reloads use the configured default. It cannot disable base rules.
+No agent tool can mutate this setting. In `observe` mode all RiskProof findings, including
+task and identity findings, remain advisory.
+
+`read-only` rejects LOCAL_MUTATION, EXTERNAL_ACTION, CODE_EXECUTION, and unknown tools.
+`local-only` rejects EXTERNAL_INGESTION, EXTERNAL_ACTION, CODE_EXECUTION, and unknown tools.
+These rely on configured/classified capabilities; use the host sandbox to contain tools.
+
+The report shows current mode, policy preset, task scope, disabled detection warnings,
+and counts for the current agent's retained proofs. `proof.maxRecords` bounds the global
+ring across all agents, so counts are not lifetime totals. With `proof.enabled: false`,
+reports disclose that no proof accounting is available.
+
+JSONL files now contain original proof records and append-only `riskproof/receipt` events
+correlated by `proofId`. Consumers must distinguish the two forms. In-memory proofs carry
+the latest receipt. Existing files are not replayed into the live dashboard on restart.

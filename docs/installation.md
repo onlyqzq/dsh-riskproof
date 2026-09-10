@@ -1,74 +1,108 @@
-# Installation
+# Installation and first use
 
-RiskProof is a DeepSeek Harness plugin. Pick the install path that matches how you run DSH.
+## Try the 0.3.0 candidate now
 
-## From npm (recommended)
-
-Prebuilt and fastest — no build step or `allowBuilds` approval. DSH requires Node.js 22.19+ and `pnpm` on `PATH` for plugin management:
-
-```bash
-dsh plugin --profile <profile> add dsh-riskproof@0.2.1
-```
-
-Pinning the patch release avoids a package manager release-age policy selecting
-the incompatible `0.2.0` build. RiskProof 0.2.1 is tested against DSH
-0.1.0-rc.7, 0.1.0-rc.8, 0.1.1-rc.2, and 0.1.2-rc.1.
-
-DSH profiles intentionally disable automatic peer installation because the
-host supplies Cordis and the DSH runtime singletons. pnpm may therefore print
-a missing-peer warning during installation; do not add private copies of those
-packages to the profile. A successful `dsh --profile <profile>` boot is the
-compatibility check that matters.
-
-The package's `dsh.bundle.patch` declaration automatically appends its bundled `riskproof` row to the profile's bundle stack. Do not insert a second row just to enable it.
-
-Verify it is composed:
+The workspace contains a release candidate, not a published npm release. Node.js 22.19+
+and `dsh` / `pnpm` on PATH are required. Build the prebuilt package, then install it:
 
 ```bash
-dsh --profile <profile> --dump-config
-```
-
-You should see a `riskproof` row from the `dsh-riskproof` package.
-
-## From a prebuilt GitHub Release tarball
-
-Each GitHub release publishes the exact tarball built by release CI. npm publication separately uses npm provenance. The tarball is useful for pinning an exact version:
-
-```bash
-dsh plugin --profile <profile> add \
-  https://github.com/onlyqzq/dsh-riskproof/releases/download/v0.2.1/dsh-riskproof-0.2.1.tgz
-```
-
-## From source
-
-Git-hosted installs run the package's `prepare` build and therefore require
-DSH/pnpm build-script approval:
-
-```bash
-dsh plugin --profile <profile> add \
-  github:onlyqzq/dsh-riskproof --allow-build dsh-riskproof
-```
-
-For development from a local checkout:
-
-```bash
-git clone https://github.com/onlyqzq/dsh-riskproof
-cd dsh-riskproof
 npm ci
-npm run build
-dsh plugin --profile <profile> add ./   # installs the local package
+mkdir -p artifacts
+npm pack --pack-destination artifacts
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
+dsh --profile web --dump-config
 ```
 
-## Confirm it is active
+The dump must contain exactly one `riskproof` row with `name: dsh-riskproof` and
+`config: {}`. The bundle is composed automatically; do not insert a second row.
+Restart your DSH profile to load the installed version.
 
-RiskProof is a passive layer over the Tool Runtime — it registers no tools. To
-see it decide in a real pipeline without a model or profile, run the bundled
-demo:
+In the DSH conversation composer, enter:
+
+```text
+/riskproof
+/riskproof demo
+/riskproof trace
+```
+
+The native command directory can discover RiskProof when you type `/`. The command
+returns its report directly to DSH's command card without calling a model. The demo uses
+isolated synthetic inputs with the default balanced engine; it never reads private files,
+runs shell commands, or sends email, and does not affect the live protection counts.
+
+For profiles without the native commands service, ask the agent to call `riskproof_report`
+with `view: status`, `trace`, or `demo`. This tool cannot change security policy or task scope.
+Normal model usage still incurs the host model's ordinary cost; the security decision
+engine and direct slash commands do not call a model.
+
+## After the release is published
 
 ```bash
-npm run demo
+dsh plugin --profile web add dsh-riskproof@0.3.0
 ```
 
-It boots a real Cordis context and the real `@deepseek-ai/dsh-tools`
-ToolRuntime, registers three mock tools, and drives the
-`web → database → email` attack chain to a `deny`.
+The prebuilt npm package needs no local compilation. DSH supplies the official peer
+runtime packages. Missing-peer warnings from profile pnpm are not by themselves a
+startup failure; don't install duplicate private Cordis/DSH runtimes into the profile.
+
+## From Git source
+
+```bash
+dsh plugin --profile web add github:onlyqzq/dsh-riskproof --allow-build dsh-riskproof
+```
+
+Git source runs `prepare`; inspect and approve the build as prompted by DSH/pnpm.
+The code on the remote must contain this version before this command installs 0.3.0.
+For a local checkout, build first, then install the generated tarball as above.
+
+## Task contracts
+
+`/riskproof task read-only` adds a session-local restriction on writes, external actions,
+shell/code execution, and unknown tools. `local-only` restricts network tools, shell/code
+execution, and unknown tools. Shell is deliberately denied because arbitrary commands
+cannot be proven read-only or local by capability classification.
+
+`/riskproof task standard` removes the additional task restriction. Base safety rules
+remain active. Only the human command or profile configuration changes this contract;
+there is no policy-changing model tool. These are capability restrictions, not OS isolation.
+
+## Reproduce installation checks
+
+```bash
+npm run verify
+npm run test:coverage
+npm pack --pack-destination artifacts
+npm run check:dsh
+```
+
+`check:dsh` creates a new temporary DSH home, installs the exact tarball into fresh Web
+and SDK profiles, verifies bundle composition, then boots the real SDK host over stdio.
+Its temporary fixture exercises the registered commands, four rehearsals, a blocked
+synthetic write (tool body must not run), the report tool, and a correlated receipt.
+It performs no model requests and does not use your existing profile or credentials.
+Evidence is written to `artifacts/dsh-install-check*.json` and `.log`.
+`DSH_BIN=/path/to/dsh npm run check:dsh` tests another installed host version.
+
+For automated browser acceptance, install Playwright in your development environment and
+its Chromium browser, then run `npm run check:web`. If Playwright is installed elsewhere,
+set `PLAYWRIGHT_MODULE` to its absolute `index.mjs` path; `CHROME_PATH` optionally selects
+an installed Chrome executable. The script creates a fresh profile, starts DSH on a random
+localhost port, and uses a local deterministic model fixture to exercise the actual Agent
+loop. It does not use your API keys. Screenshots and evidence go to `artifacts/web/`.
+
+For a manual check with your own model configuration:
+
+```bash
+# Pick a fresh directory for each rebuilt tarball to avoid package-manager cache reuse.
+DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
+DSH_HOME=/tmp/riskproof-web-manual dsh --profile web --no-open --port 19843
+```
+
+Open the exact URL printed by DSH, including its authentication token. Select a workspace,
+then enter `/riskproof`, `/riskproof demo`, `/riskproof task read-only`, and `/riskproof trace`.
+The beacon appears without a command and stays collapsed. Click it to inspect the compact
+chart; ordinary tool activity should update it automatically. Commands are secondary entries.
+Confirm the overview remains readable at narrow widths and a new session clears old risks. DSH 0.1.0-rc.7 does not accept `--no-open`; omit it there.
+
+See the [Chinese step-by-step Web checklist](web-acceptance.zh-CN.md) and
+[validation evidence](v0.3-validation.md) for tested scope and limitations.

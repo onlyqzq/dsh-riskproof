@@ -24,6 +24,8 @@ export function redactLogText(value: string): string {
 export function redactProof(proof: SecurityProof): SecurityProof {
   return {
     ...proof,
+    tool: redactLogText(proof.tool),
+    sources: proof.sources?.map((source) => ({ ...source, tool: redactLogText(source.tool) })),
     reason: redactLogText(proof.reason),
     remediations: proof.remediations.map(redactLogText),
     matchedRules: proof.matchedRules.map((rule) => ({
