@@ -17,14 +17,14 @@ export interface Dashboard {
 
 export function dashboard(snapshot: ReportSnapshot, sessionId: string | null): Dashboard {
   const kind = (p: ReportSnapshot["proofs"][number]): "clear" | "blocked" | "attention" =>
-    p.mode === "enforce" && p.decision === "deny" && p.receipt?.gate === "deny" ? "blocked"
-      : p.decision !== "allow" || p.receipt?.gate === "deny" || p.receipt?.outcome === "error" ? "attention" : "clear";
+    p.mode === "enforce" && (p.decision === "deny" && p.receipt?.gate === "deny" || p.receipt?.output?.action === "block") ? "blocked"
+      : p.decision !== "allow" || p.receipt?.gate === "deny" || p.receipt?.outcome === "error" || p.receipt?.output?.action === "would_block" ? "attention" : "clear";
   const proofs = sessionId === null ? [] : snapshot.proofs;
   const risks = proofs.filter(p => kind(p) !== "clear");
   return {
     sessionId, mode: snapshot.mode, taskMode: snapshot.taskMode,
     proofEnabled: snapshot.proofEnabled,
-    partial: !snapshot.provenanceEnabled || !snapshot.taintEnabled || !snapshot.toolchainEnabled,
+    partial: !snapshot.provenanceEnabled || !snapshot.taintEnabled || !snapshot.toolchainEnabled || !snapshot.outputEnabled,
     limit: snapshot.limit,
     counts: {
       checked: proofs.length,
@@ -39,8 +39,9 @@ export function dashboard(snapshot: ReportSnapshot, sessionId: string | null): D
     risks: risks.slice(-3).reverse().map(p => ({
       id: p.proofId, tool: displayText(p.tool),
       sources: [...new Set((p.sources ?? []).map(s => displayText(s.tool)))].slice(0, 3),
-      title: RULE_GUIDANCE[p.matchedRules[0]?.id]?.[0] ?? "操作需要关注",
-      rule: displayText(p.matchedRules[0]?.id ?? ""),
+      title: p.receipt?.output?.action === "block" ? RULE_GUIDANCE.sensitive_tool_output[0]
+        : RULE_GUIDANCE[p.matchedRules[0]?.id]?.[0] ?? "操作需要关注",
+      rule: displayText(p.receipt?.output?.action === "block" ? "sensitive_tool_output" : p.matchedRules[0]?.id ?? ""),
       outcome: p.mode === "observe" ? "仅观察，未主动拦截"
         : kind(p) === "blocked" ? "已阻止执行"
           : p.receipt?.outcome === "error" ? "工具执行出错"

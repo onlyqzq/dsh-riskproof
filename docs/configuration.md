@@ -18,6 +18,12 @@ config:
   taint:
     enabled: true
 
+  output:
+    enabled: true
+    blockedTaints: [SECRET, API_KEY]
+    trustedDeclassifiers: {}
+    # approved_redactor: [PII, CUSTOMER_DATA]
+
   toolchain:
     enabled: true
     maxEvents: 128
@@ -56,6 +62,30 @@ config:
 
 - **`enforce`** — RiskProof applies `allow` / `ask` / `deny` and records proofs.
 - **`observe`** — RiskProof analyzes, records proofs, and warns, but never changes execution. Use it during initial rollout and false-positive triage.
+
+## Output control and trusted declassification
+
+`output.enabled` evaluates every normalized result in DSH `tools/post-execute`, including
+model-facing replacement values, content and additional context returned by downstream
+post-processors. The default blocks `SECRET` and `API_KEY`; add any supported taint label
+to `blockedTaints` to protect a broader class. Output control has no approval phase because
+the tool body has already run: it either accepts the result or replaces it with safe block
+feedback. In `observe` mode it records `would_block` and leaves the result unchanged.
+
+`trustedDeclassifiers` is an operator-owned exact tool-name map:
+
+```yaml
+output:
+  blockedTaints: [SECRET, API_KEY, PII, CUSTOMER_DATA]
+  trustedDeclassifiers:
+    approved_redactor: [PII, CUSTOMER_DATA]
+```
+
+A listed tool may remove only those labels inherited from its arguments. Kind-based labels
+from the output tool and deterministic labels detected in the returned value/content are
+then added back. Thus a tool configured to declassify `PII` still blocks if its returned
+projection contains an email address. Ordinary tools cannot remove labels. Declassifier
+configuration is exact-name, bounded and load-time validated; it is not mutable by an agent.
 
 ## Policy decisions
 
@@ -148,6 +178,7 @@ Configuration fails at plugin load when a value is out of range or inconsistent:
 | `proof.maxRecords` | 10000 |
 | Each policy list | 256 entries |
 | Each policy list entry | 512 characters |
+| `output.trustedDeclassifiers` | 256 tools |
 
 `maxEntryBytes` cannot exceed `maxTotalBytes`, and `chainWindow` cannot exceed `maxEvents`.
 
@@ -179,3 +210,10 @@ reports disclose that no proof accounting is available.
 JSONL files now contain original proof records and append-only `riskproof/receipt` events
 correlated by `proofId`. Consumers must distinguish the two forms. In-memory proofs carry
 the latest receipt. Existing files are not replayed into the live dashboard on restart.
+
+## v0.4: output receipts
+
+Execution receipts may include an `output` object containing only the action (`allow`,
+`block`, or `would_block`), taint labels and labels removed by trusted declassification.
+An enforced output block settles with `outcome: output_blocked`. No result body is stored
+in memory proofs, JSONL receipt events, reports or dashboard payloads.

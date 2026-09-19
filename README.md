@@ -84,7 +84,7 @@ RiskProof is a layer over the DSH Tool Runtime, not another Agent Runtime. It ne
 # build and install the candidate from this checkout
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.0.tgz
 
 # confirm the bundled patch was composed
 dsh --profile web --dump-config
@@ -92,7 +92,7 @@ dsh --profile web --dump-config
 
 The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. Restart the profile to see the beacon, then click it to inspect the current conversation.
 
-This workspace is the **0.3.0 release candidate, not yet published to npm**. Before publication,
+This workspace is the **0.4.0 release candidate, not yet published to npm**. Before publication,
 use the [local tarball instructions](docs/installation.md). Installation, SDK host startup,
 commands and tool execution have been verified on DSH 0.1.0-rc.7 and 0.1.2-rc.1.
 Chrome desktop and narrow-viewport Web acceptance also passed on DSH 0.1.2-rc.1,
@@ -114,6 +114,9 @@ To tune it, override the bundled row from the profile's later `cordis.patch.yml`
       overrides:
         gmail_send: [EXTERNAL_ACTION]
         company_db: [PRIVATE_ACCESS]
+    output:
+      blockedTaints: [SECRET, API_KEY]
+      # trustedDeclassifiers: { approved_redactor: [PII] }
 ```
 
 See [docs/configuration.md](docs/configuration.md) for the full reference.
@@ -162,6 +165,14 @@ Know where tool inputs came from. RiskProof maps arguments back to the tool resu
 
 Carry security labels — `UNTRUSTED_WEB`, `CUSTOMER_DATA`, `PII`, `SECRET`, … — across tool calls, additively.
 
+### Control sensitive output
+
+Inspect model-facing results in `tools/post-execute`; block `SECRET` and `API_KEY` output by default before it enters model context.
+
+### Declassify through pinned tools
+
+Let exact operator-approved tools remove selected inherited labels. Labels detected in the returned value are always restored, so a redactor must actually remove the sensitive data.
+
 ### Detect attack chains
 
 Identify the `EXTERNAL_INGESTION → PRIVATE_ACCESS → EXTERNAL_ACTION` pattern that single-tool checks miss.
@@ -196,6 +207,14 @@ tools/pre-execute
     ▼
 allow / ask / deny   (monotonic with other plugins)
     │
+tool execute
+    │
+tools/post-execute
+    │  output taint evaluation
+    │  trusted declassification
+    ▼
+accept / block
+    │
 tools/result
     │  update ContextTracker
     │  update Toolchain state
@@ -204,7 +223,7 @@ tools/result
 
 - **Classification** is deterministic (tool name + description + schema), configurable, and never uses an LLM.
 - **Provenance** uses exact and bounded substring matching over a per-session context index.
-- **Taint** is additive; ordinary tool output can never remove a label.
+- **Taint** is additive; only an exact operator-approved declassifier can remove selected inherited labels.
 - **Decisions** are deterministic, explainable, and testable.
 
 See [docs/architecture.md](docs/architecture.md).
@@ -213,7 +232,7 @@ See [docs/architecture.md](docs/architecture.md).
 
 RiskProof protects **supported observable tool-call flows** through DSH:
 
-- DSH tool calls through the supported `tools/pre-execute` / `tools/result` paths
+- DSH tool calls through the supported `tools/pre-execute` / `tools/post-execute` / `tools/result` paths
 - supported observable provenance (exact / bounded substring matching)
 - configured sensitive flows and cross-tool attack patterns
 
@@ -230,6 +249,7 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 ## Documentation
 
 - [Installation](docs/installation.md)
+- [v0.4 output control and trusted declassification](docs/v0.4-product-upgrade.md)
 - [v0.3 product research](docs/v0.3-product-upgrade.md)
 - [v0.3 validation](docs/v0.3-validation.md)
 - [Architecture](docs/architecture.md)
@@ -253,7 +273,7 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 - Policy presets, sensitive-path gates, deterministic command-risk checks, and egress domain policy
 - Remediation guidance and per-rule proof statistics
 
-### v0.3 (current candidate)
+### v0.3 (delivered)
 
 - Native security receipts, provenance timeline, bilingual reports and safe rehearsals
 - Tool metadata continuity: description and input/output schema fingerprints
@@ -261,10 +281,17 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 - Execution-token correlation between policy gates and final results
 - Taint inheritance through intermediate tools; bounded, isolated session state
 
+### v0.4 (current candidate)
+
+- Output-side information-flow control before results reach model context
+- Default credential-output blocking with configurable label selection
+- Exact-name trusted declassifiers with deterministic re-tainting
+- Redacted output-control and declassification receipts
+
 ### Later
 
-- Output-side information-flow control
-- Trusted declassification
+- Richer structured/semantic DLP adapters
+- Cross-process provenance with explicit trust boundaries
 
 ## Contributing
 

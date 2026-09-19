@@ -80,7 +80,7 @@ RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 
 # 在本仓库中构建并安装候选版
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.0.tgz
 
 # 确认包内 patch 已被组合
 dsh --profile web --dump-config
@@ -88,7 +88,7 @@ dsh --profile web --dump-config
 
 该包声明了 DSH bundle，`plugin add` 自动组合 `riskproof` 行。重启该 profile 后，即可看到常驻安全浮标；点击查看当前对话概览。支持原生命令的界面也可通过 `/` 搜索 RiskProof。
 
-当前工作区为 **0.3.0 发布候选版，尚未发布到 npm**。发布前请使用 [本地安装包方式](docs/installation.md)。
+当前工作区为 **0.4.0 发布候选版，尚未发布到 npm**。发布前请使用 [本地安装包方式](docs/installation.md)。
 已验证 DSH 0.1.0-rc.7 与 0.1.2-rc.1 的安装、SDK 宿主启动、命令和工具管线；DSH 0.1.2-rc.1 的 Chrome 桌面与窄屏 Web 验收已通过，含真实 Agent 工具管线的来源拦截和只读拦截（本地模拟模型驱动）。详见 [验收记录](docs/v0.3-validation.md) 和 [Web 操作步骤](docs/web-acceptance.zh-CN.md)。
 
 如需调整，可在随后加载的 profile `cordis.patch.yml` 中覆盖 bundle 行：
@@ -106,6 +106,9 @@ dsh --profile web --dump-config
       overrides:
         gmail_send: [EXTERNAL_ACTION]
         company_db: [PRIVATE_ACCESS]
+    output:
+      blockedTaints: [SECRET, API_KEY]
+      # trustedDeclassifiers: { approved_redactor: [PII] }
 ```
 
 完整配置参考见 [docs/configuration.md](docs/configuration.md)。
@@ -146,6 +149,14 @@ sequenceDiagram
 
 让安全标签——`UNTRUSTED_WEB`、`CUSTOMER_DATA`、`PII`、`SECRET` 等——以加法方式跨工具传播。
 
+### 控制敏感输出
+
+在 `tools/post-execute` 检查模型可见的工具结果；默认在结果进入模型上下文前拦截 `SECRET` 与 `API_KEY`。
+
+### 通过固定工具可信降密
+
+只有操作者按精确名称批准的工具才能移除指定继承标签。结果正文若仍命中敏感特征，标签会被重新加回，因此降密工具必须真正移除敏感数据。
+
 ### 发现攻击链
 
 识别 `EXTERNAL_INGESTION → PRIVATE_ACCESS → EXTERNAL_ACTION` 这一单工具检查发现不了的模式。
@@ -180,6 +191,14 @@ tools/pre-execute
     ▼
 allow / ask / deny   （与其他插件单调合并）
     │
+工具执行
+    │
+tools/post-execute
+    │  输出污点评估
+    │  可信降密
+    ▼
+accept / block
+    │
 tools/result
     │  更新 ContextTracker
     │  更新工具链状态
@@ -188,7 +207,7 @@ tools/result
 
 - **分类**是确定性的（工具名 + 描述 + schema）、可配置的，且从不使用 LLM。
 - **来源追踪**使用精确和带边界的子串匹配，基于每个会话的上下文索引。
-- **污点**是加法的；普通工具输出无法移除标签。
+- **污点**是加法的；只有操作者精确批准的降密工具可移除指定继承标签。
 - **决策**是确定性、可解释、可测试的。
 
 详见 [docs/architecture.md](docs/architecture.md)。
@@ -197,7 +216,7 @@ tools/result
 
 RiskProof 保护的是 DSH 中**可观测的工具调用流**：
 
-- 经过 `tools/pre-execute` / `tools/result` 支持的路径的 DSH 工具调用
+- 经过 `tools/pre-execute` / `tools/post-execute` / `tools/result` 支持路径的 DSH 工具调用
 - 可观测的来源追踪（精确 / 带边界子串匹配）
 - 配置的敏感数据流与跨工具攻击模式
 
@@ -214,6 +233,7 @@ RiskProof **不能替代**：
 ## 文档
 
 - [安装](docs/installation.md)
+- [v0.4 输出控制与可信降密](docs/v0.4-product-upgrade.md)
 - [v0.3 产品迭代与榜单调研](docs/v0.3-product-upgrade.md)
 - [v0.3 验收记录](docs/v0.3-validation.md)
 - [架构](docs/architecture.md)
@@ -237,7 +257,7 @@ RiskProof **不能替代**：
 - 策略预设、敏感路径门控、确定性危险命令检测和出口域名策略
 - 处置建议与按规则聚合的 proof 统计
 
-### v0.3（当前候选版）
+### v0.3（已完成）
 
 - 原生安全账单、来源时间线、无副作用演练与中英文报告
 - 工具元数据身份连续性：描述、输入／输出 schema 变化时拒绝
@@ -245,10 +265,17 @@ RiskProof **不能替代**：
 - 按执行 token 关联门控与最终结果的回执
 - 中间工具结果继承敏感标签；会话隔离与有界状态
 
+### v0.4（当前候选版）
+
+- 在结果进入模型上下文前执行输出侧信息流控制
+- 默认拦截凭据输出，并允许配置需拦截的标签
+- 按精确工具名配置可信降密，结果仍敏感时确定性重新加标
+- 在回执中记录脱敏后的输出控制与降密信息
+
 ### 后续
 
-- 输出侧信息流控制
-- 可信降密
+- 更丰富的结构化／语义 DLP 适配
+- 带显式信任边界的跨进程来源追踪
 
 ## 贡献
 

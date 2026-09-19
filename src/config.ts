@@ -8,6 +8,7 @@
 // ============================================================================
 
 import z from "@deepseek-ai/schemastery";
+import { ALL_TAINTS, type TaintLabel } from "./core/types.js";
 
 /** DSH-facing decision. Internal `require_approval` maps from `ask`. */
 export type ConfigDecision = "allow" | "ask" | "deny";
@@ -37,6 +38,12 @@ export const TOOLCHAIN_DEFAULTS = {
   enabled: true,
   maxEvents: 128,
   chainWindow: 12,
+};
+
+export const OUTPUT_DEFAULTS = {
+  enabled: true,
+  blockedTaints: ["SECRET", "API_KEY"] as TaintLabel[],
+  trustedDeclassifiers: {} as Record<string, TaintLabel[]>,
 };
 
 export const POLICY_PRESETS = Object.freeze({
@@ -132,6 +139,7 @@ export interface RiskProofConfig {
   mode: "observe" | "enforce";
   provenance: typeof PROVENANCE_DEFAULTS;
   taint: { enabled: boolean };
+  output: typeof OUTPUT_DEFAULTS;
   toolchain: typeof TOOLCHAIN_DEFAULTS;
   classification: { overrides: Record<string, string[]> };
   policy: RiskProofPolicy;
@@ -175,6 +183,15 @@ const BaseConfig = z.object({
   taint: z.object({
     enabled: z.boolean().default(true),
   }).default({ enabled: true }),
+
+  output: z.object({
+    enabled: z.boolean().default(OUTPUT_DEFAULTS.enabled),
+    blockedTaints: z.array(z.string())
+      .max(ALL_TAINTS.length)
+      .default(OUTPUT_DEFAULTS.blockedTaints),
+    trustedDeclassifiers: z.dict(z.array(z.string()).max(ALL_TAINTS.length))
+      .default({}),
+  }).default(OUTPUT_DEFAULTS),
 
   toolchain: z.object({
     enabled: z.boolean().default(TOOLCHAIN_DEFAULTS.enabled),
@@ -226,6 +243,7 @@ export const Config = z.transform(BaseConfig, (value) => {
     allowedExternalDomains: normalizePolicyList(rawPolicy.allowedExternalDomains, "policy.allowedExternalDomains", "domain"),
     sensitivePathPatterns: normalizePolicyList(rawPolicy.sensitivePathPatterns, "policy.sensitivePathPatterns", "path"),
   };
+  config.output = normalizeOutputConfig(value.output as unknown as RiskProofConfig["output"]);
   if (config.provenance.maxEntryBytes > config.provenance.maxTotalBytes) {
     throw new TypeError("provenance.maxEntryBytes must not exceed provenance.maxTotalBytes");
   }
@@ -300,6 +318,34 @@ function normalizePolicyList(
     } else if (!result.includes(value)) {
       result.push(value);
     }
+  }
+  return result;
+}
+
+function normalizeOutputConfig(raw: RiskProofConfig["output"]): RiskProofConfig["output"] {
+  const blockedTaints = normalizeTaintList(raw.blockedTaints, "output.blockedTaints");
+  const entries = Object.entries(raw.trustedDeclassifiers);
+  if (entries.length > CONFIG_LIMITS.maxPolicyListEntries) {
+    throw new TypeError(`output.trustedDeclassifiers must contain at most ${CONFIG_LIMITS.maxPolicyListEntries} tools`);
+  }
+  const trustedDeclassifiers: Record<string, TaintLabel[]> = Object.create(null) as Record<string, TaintLabel[]>;
+  for (const [rawName, labels] of entries) {
+    const name = rawName.trim();
+    if (name.length === 0 || name.length > 256 || /[\u0000-\u001f\u007f]/.test(name)) {
+      throw new TypeError("output.trustedDeclassifiers keys must be 1-256 printable characters");
+    }
+    trustedDeclassifiers[name] = normalizeTaintList(labels, `output.trustedDeclassifiers.${name}`);
+  }
+  return { enabled: raw.enabled, blockedTaints, trustedDeclassifiers };
+}
+
+function normalizeTaintList(values: readonly string[], label: string): TaintLabel[] {
+  const allowed = new Set<string>(ALL_TAINTS);
+  const result: TaintLabel[] = [];
+  for (const value of values) {
+    if (!allowed.has(value)) throw new TypeError(`${label} contains unsupported taint '${value}'`);
+    const taint = value as TaintLabel;
+    if (!result.includes(taint)) result.push(taint);
   }
   return result;
 }

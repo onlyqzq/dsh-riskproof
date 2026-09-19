@@ -49,13 +49,14 @@ Classification is heuristic and conservative: a false positive only adds scrutin
 
 ## Taint
 
-Taint labels describe *what security attribute data carries*; provenance describes *where it came from*. Taint is additive — a tool output cannot remove a label (trusted declassification is future work).
+Taint labels describe *what security attribute data carries*; provenance describes *where it came from*. Taint is additive for ordinary tools. An operator-pinned trusted declassifier may remove only explicitly configured inherited labels; kind-based and value-detected output labels are applied afterward.
 
 ## Failure handling
 
 | Class | Behavior |
 | ----- | -------- |
 | Security decision failure | fail closed (`deny`) — a throwing `tools/pre-execute` listener denies the call |
+| Output policy failure | fail closed (`block`) in enforce mode; observe mode leaves the result unchanged |
 | Proof/telemetry failure | contained — proof storage errors are logged and do not block execution |
 | Invalid config | plugin fails to load (Schemastery validation) |
 | Plugin programming bug | contained by the harness; the tool pipeline reports an error result |
@@ -74,7 +75,7 @@ Taint labels describe *what security attribute data carries*; provenance describ
 
 ## Out of scope (v0.2)
 
-OS sandbox, process-level network proxy/firewall, DNS/SSRF firewall, credential vault, tool-result rewriting, semantic DLP, LLM judge/approval, general-purpose permission-rule files, web dashboard, distributed provenance graph, multi-machine ledger, cross-session provenance, full shell parser, malware scanner, and plugin-installation scanner.
+OS sandbox, process-level network proxy/firewall, DNS/SSRF firewall, credential vault, semantic DLP, LLM judge/approval, general-purpose permission-rule files, distributed provenance graph, multi-machine ledger, cross-session provenance, full shell parser, malware scanner, and plugin-installation scanner.
 
 ## v0.3 additions and limits
 
@@ -113,6 +114,25 @@ labels, bounded source links, outcomes and counts for the requested session. It 
 no policy mutations, raw arguments/results, private paths or proof evidence bodies. It
 does not resume agents, read historical logs or allocate per-session security state.
 The authorization boundary is the same authenticated host owner as the DSH Web connection.
+
+## v0.4 additions and limits
+
+Output control runs in DSH `tools/post-execute`, after the tool body has run but before its
+normalized outcome is committed to model context. It prevents disclosure to the model and
+durable model-facing result, but cannot undo a side effect already performed by the tool.
+This is why pre-execution rules remain the boundary for external actions and mutations.
+
+By default, `SECRET` and `API_KEY` block the result. Operators can configure more labels.
+The decision inspects the canonical result, rendered content and additional context, as well
+as accepted replacement projections returned by downstream post-processors. Another plugin
+loaded outside the observable waterfall or a compromised/equally privileged plugin remains
+outside the guarantee.
+
+Trusted declassification is exact-name configuration, not a claim that code was audited or
+signed. It removes only approved inherited labels. A label inferred from the result tool's
+kind or detected in returned data is restored after declassification. Operators must pin
+only narrowly scoped, deterministic redactors and retain host sandboxing. Observe mode logs
+`would_block` but deliberately permits output.
 
 The client follows the official current-session store, cancels obsolete reads and rejects
 late responses from previous selections. It clears the visible snapshot on RPC failure.

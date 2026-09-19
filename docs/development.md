@@ -53,13 +53,14 @@ npm pack
 Then install into a fresh profile:
 
 ```bash
-DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.3.0.tgz
+DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.4.0.tgz
 DSH_HOME=/tmp/dsh-riskproof-smoke dsh --profile test --dump-config
 ```
 
 See `tests/` and `.github/workflows/ci.yml` for the automated equivalents.
 
-For browser prerequisites and fixture boundaries, see [validation](v0.3-validation.md).
+For the current security delta see [v0.4 iteration](v0.4-product-upgrade.md); for browser
+prerequisites and fixture boundaries, see the historical [v0.3 validation](v0.3-validation.md).
 
 Client lifecycle tests use jsdom (development only) and include async session switches,
 disconnects, inert metadata rendering and disposal. Browser acceptance separately validates

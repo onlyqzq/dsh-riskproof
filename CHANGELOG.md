@@ -4,7 +4,25 @@ All notable changes to RiskProof are documented here.
 
 The project follows [Semantic Versioning](https://semver.org/).
 
-## 0.3.0 — candidate (unpublished)
+## [Unreleased]
+
+## 0.4.0 — candidate (unpublished)
+
+- Add output-side information-flow control on DSH `tools/post-execute`, before
+  model-visible tool results are committed.
+- Block `SECRET` and `API_KEY` output by default; allow operators to select
+  additional blocked labels.
+- Add exact-name trusted declassifiers that may remove only configured inherited
+  labels; source classification and value detection always restore labels still
+  supported by the returned data.
+- Inspect downstream replacement values/content and fail closed when output
+  evaluation cannot complete in enforce mode.
+- Add redacted output actions and declassification labels to execution receipts,
+  text reports, JSONL events and the live dashboard.
+- Cover output blocks, observe mode, declassification, re-tainting and the real
+  DSH post-execute pipeline with deterministic tests.
+
+## [0.3.0] — 2026-09-10
 
 - Add native `/riskproof` security receipts, provenance timeline, bilingual report tool,
   and four isolated protection rehearsals that do not execute side effects.
@@ -21,8 +39,6 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Verify Chrome Web live updates, pending receipts, desktop/mobile charts, actual Agent tool denials
   and receipts using a deterministic local model fixture; retain screenshots and package hashes.
 - Update first-use documentation, screenshots and product messaging. This candidate is not published.
-
-## [Unreleased]
 
 ## [0.2.1] — 2026-09-07
 

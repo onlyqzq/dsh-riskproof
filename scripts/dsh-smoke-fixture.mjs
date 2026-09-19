@@ -35,5 +35,17 @@ export async function apply(ctx) {
   if (report.isError || !String(report.value).includes("RiskProof 已拦截 1")) throw new Error("Installed report receipt failed");
   const trace = await command("trace");
   if (!trace.includes("deny → blocked")) throw new Error("Installed trace missing execution receipt");
-  process.stderr.write("RISKPROOF_INSTALL_CHECK_OK\n" + demo + "\n" + trace + "\n");
+  await command("task standard");
+  ctx.tools.register({
+    name: "riskproof_smoke_get_secret", description: "Read a credential from the secret vault", parameters: { type: "object", properties: {} },
+    output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: value }] },
+    async execute() { return "RISKPROOF_PRIVATE_OUTPUT_VALUE"; },
+  });
+  const outputBlocked = await call("riskproof_smoke_get_secret");
+  if (!outputBlocked.isError || JSON.stringify(outputBlocked).includes("RISKPROOF_PRIVATE_OUTPUT_VALUE")) {
+    throw new Error("Output policy did not replace credential output safely");
+  }
+  const outputTrace = await command("trace");
+  if (!outputTrace.includes("output_blocked")) throw new Error("Installed trace missing output-control receipt");
+  process.stderr.write("RISKPROOF_INSTALL_CHECK_OK\n" + demo + "\n" + outputTrace + "\n");
 }

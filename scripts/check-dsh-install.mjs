@@ -44,7 +44,7 @@ const { output, ...lifecycle } = result;
 evidence.lifecycle = lifecycle;
 writeFileSync(join(artifacts, `dsh-install-lifecycle-${versionSuffix}.json`), JSON.stringify(lifecycle, null, 2) + "\n");
 if (!smokePassed(result)) throw new Error(`DSH install check failed (${JSON.stringify(lifecycle)}): ${output}`);
-evidence.checks.push(`${hasSdkRpc ? "sdk RPC" : "legacy base profile"}: real host boot, slash-command discovery/demo, task enforcement, report tool, receipts, clean shutdown`);
+evidence.checks.push(`${hasSdkRpc ? "sdk RPC" : "legacy base profile"}: real host boot, slash-command discovery/demo, task enforcement, output blocking, report tool, receipts, clean shutdown`);
 evidence.webBrowser = "Not covered: run a Web/browser check separately.";
 writeFileSync(join(artifacts, "dsh-install-check.json"), JSON.stringify(evidence, null, 2) + "\n");
 writeFileSync(join(artifacts, `dsh-install-check-${versionSuffix}.json`), JSON.stringify(evidence, null, 2) + "\n");

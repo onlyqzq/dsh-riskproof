@@ -51,6 +51,7 @@ describe("plugin lifecycle", () => {
     await fiber;
 
     expect(countLabels(fiber.getEffects(), 'ctx.on("tools/pre-execute")')).toBe(1);
+    expect(countLabels(fiber.getEffects(), 'ctx.on("tools/post-execute")')).toBe(1);
     expect(countLabels(fiber.getEffects(), 'ctx.on("tools/result")')).toBe(1);
     expect(countLabels(fiber.getEffects(), 'ctx.on("tools/change")')).toBe(1);
 

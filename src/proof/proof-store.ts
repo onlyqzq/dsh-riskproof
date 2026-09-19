@@ -77,9 +77,13 @@ export class ProofStore {
   settle(proofId: string, receipt: ExecutionReceipt): void {
     const proof = this.records.find((record) => record.proofId === proofId);
     if (!proof) return;
-    proof.receipt = structuredClone(receipt);
+    const settled = structuredClone(receipt);
+    if (settled.output === undefined && proof.receipt?.output !== undefined) {
+      settled.output = structuredClone(proof.receipt.output);
+    }
+    proof.receipt = settled;
     if (this.file) appendFileSync(this.file, JSON.stringify({
-      type: "riskproof/receipt", proofId, receipt,
+      type: "riskproof/receipt", proofId, receipt: settled,
     }) + "\n", { encoding: "utf-8", mode: 0o600, flag: "a" });
   }
 

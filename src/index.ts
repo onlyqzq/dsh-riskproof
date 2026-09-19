@@ -7,6 +7,7 @@
 //
 // Primary integration points:
 //   tools/pre-execute  — allow / ask / deny before dispatch (monotonic)
+//   tools/post-execute — output-side information-flow control
 //   tools/result       — update provenance + toolchain state on success
 //   tools/change       — invalidate the capability classifier cache
 //   agent/disposed     — release per-session state
@@ -16,6 +17,7 @@ import type { Context } from "@deepseek-ai/cordis";
 
 import {
   Config,
+  OUTPUT_DEFAULTS,
   POLICY_DEFAULTS,
   POLICY_PRESETS,
   type PolicyPreset,
@@ -31,7 +33,7 @@ export const name = "riskproof";
 /** Hard dependency: RiskProof is meaningless without the tool runtime. */
 export const inject = ["tools"];
 
-export { Config, POLICY_DEFAULTS, POLICY_PRESETS };
+export { Config, OUTPUT_DEFAULTS, POLICY_DEFAULTS, POLICY_PRESETS };
 export type { PolicyPreset, RiskProofConfig };
 
 /**
@@ -43,6 +45,7 @@ export function apply(ctx: Context, config?: RiskProofConfig): void {
   const runtime = new RiskProofRuntime(ctx, config);
 
   ctx.on("tools/pre-execute", (exec, next) => runtime.preExecute(exec, next));
+  ctx.on("tools/post-execute", (exec, result, next) => runtime.postExecute(exec, result, next));
   ctx.on("tools/result", (exec, result) => runtime.onResult(exec, result));
   ctx.on("tools/change", () => runtime.onToolsChange());
   ctx.on("agent/disposed", (payload) => runtime.disposeAgent(payload.agent.id));
@@ -71,6 +74,11 @@ export {
   type CommandRiskFinding,
   type CommandRiskKind,
 } from "./core/command-risk.js";
+export {
+  evaluateOutputFlow,
+  type OutputFlowDecision,
+  type OutputPolicy,
+} from "./core/output-policy.js";
 export {
   findSensitivePaths,
   matchesPathPattern,

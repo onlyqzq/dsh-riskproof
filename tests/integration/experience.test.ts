@@ -73,6 +73,21 @@ describe("real DSH commands and report tool", () => {
     await fiber.dispose();
   });
 
+  it("blocks credential output in the real post-execute pipeline", async () => {
+    const { root, fiber, call } = await boot();
+    root.tools.register(defineTool({
+      name: "get_secret", description: "Read a credential from the secret vault", parameters: {},
+      output: { schema: { type: "string" }, render: (_a, value) => [{ type: "text", text: value }] },
+      async execute() { return "opaque-credential-value"; },
+    }));
+    const result = await call("get_secret");
+    expect(result.isError).toBe(true);
+    expect(result.content.map((block) => block.type === "text" ? block.text : "").join(""))
+      .toContain("RiskProof blocked sensitive tool output");
+    expect(JSON.stringify(result)).not.toContain("opaque-credential-value");
+    await fiber.dispose();
+  });
+
   it("works without a commands service and refuses to exempt a replacement report implementation", async () => {
     const { root, agent, fiber, call } = await boot(false);
     expect((await call("riskproof_report", { view: "demo" })).isError).toBe(false);

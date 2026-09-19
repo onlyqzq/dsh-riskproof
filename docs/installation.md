@@ -1,6 +1,6 @@
 # Installation and first use
 
-## Try the 0.3.0 candidate now
+## Try the 0.4.0 candidate now
 
 The workspace contains a release candidate, not a published npm release. Node.js 22.19+
 and `dsh` / `pnpm` on PATH are required. Build the prebuilt package, then install it:
@@ -9,7 +9,7 @@ and `dsh` / `pnpm` on PATH are required. Build the prebuilt package, then instal
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -38,7 +38,7 @@ engine and direct slash commands do not call a model.
 ## After the release is published
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.3.0
+dsh plugin --profile web add dsh-riskproof@0.4.0
 ```
 
 The prebuilt npm package needs no local compilation. DSH supplies the official peer
@@ -52,7 +52,7 @@ dsh plugin --profile web add github:onlyqzq/dsh-riskproof --allow-build dsh-risk
 ```
 
 Git source runs `prepare`; inspect and approve the build as prompted by DSH/pnpm.
-The code on the remote must contain this version before this command installs 0.3.0.
+The code on the remote must contain this version before this command installs 0.4.0.
 For a local checkout, build first, then install the generated tarball as above.
 
 ## Task contracts
@@ -96,7 +96,7 @@ For a manual check with your own model configuration:
 
 ```bash
 # Pick a fresh directory for each rebuilt tarball to avoid package-manager cache reuse.
-DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.3.0.tgz
+DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.0.tgz
 DSH_HOME=/tmp/riskproof-web-manual dsh --profile web --no-open --port 19843
 ```
 
@@ -106,5 +106,6 @@ The beacon appears without a command and stays collapsed. Click it to inspect th
 chart; ordinary tool activity should update it automatically. Commands are secondary entries.
 Confirm the overview remains readable at narrow widths and a new session clears old risks. DSH 0.1.0-rc.7 does not accept `--no-open`; omit it there.
 
-See the [Chinese step-by-step Web checklist](web-acceptance.zh-CN.md) and
-[validation evidence](v0.3-validation.md) for tested scope and limitations.
+See the [v0.4 iteration record](v0.4-product-upgrade.md), the
+[Chinese step-by-step Web checklist](web-acceptance.zh-CN.md), and the historical
+[v0.3 validation evidence](v0.3-validation.md) for tested scope and limitations.

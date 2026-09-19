@@ -3,8 +3,9 @@
 // ============================================================================
 // Taint is "what security attribute does this data carry". It is strictly
 // distinct from provenance ("where did this data come from"). Taint is
-// additive: ordinary tool output can never remove a label; trusted
-// declassification is explicitly out of scope for v0.1.
+// additive: ordinary tool output can never remove a label. Trusted
+// declassification is handled separately by output-policy.ts and can remove
+// only operator-approved inherited labels.
 //
 // Deterministic only. No LLM, no network lookup.
 // ============================================================================

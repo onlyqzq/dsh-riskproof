@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RiskProofRuntime } from "../../src/dsh/runtime.js";
 import type { RiskProofConfig } from "../../src/config.js";
-import { POLICY_DEFAULTS, PROOF_DEFAULTS, PROVENANCE_DEFAULTS, TOOLCHAIN_DEFAULTS } from "../../src/config.js";
+import { OUTPUT_DEFAULTS, POLICY_DEFAULTS, PROOF_DEFAULTS, PROVENANCE_DEFAULTS, TOOLCHAIN_DEFAULTS } from "../../src/config.js";
 import { allowNext, makeExec, makeMockCtx, successResult } from "../dsh-mocks.js";
 
 function config(): RiskProofConfig {
@@ -9,6 +9,7 @@ function config(): RiskProofConfig {
     mode: "enforce",
     provenance: { ...PROVENANCE_DEFAULTS },
     taint: { enabled: true },
+    output: { ...OUTPUT_DEFAULTS, trustedDeclassifiers: {} },
     toolchain: { ...TOOLCHAIN_DEFAULTS },
     classification: { overrides: {} },
     policy: { ...POLICY_DEFAULTS },

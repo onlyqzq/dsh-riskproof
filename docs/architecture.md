@@ -36,6 +36,13 @@ RiskProof is a single Cordis plugin (`dsh-riskproof`) layered over the DSH Tool 
                   Tool Execute
                        │
                        ▼
+             tools/post-execute
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+            accept             block
+                       │
+                       ▼
                   tools/result
                        │
               ┌────────┴────────┐
@@ -57,6 +64,7 @@ RiskProof is a single Cordis plugin (`dsh-riskproof`) layered over the DSH Tool 
 | `src/core/engine.ts` | Pure deterministic policy evaluation. No DSH imports. |
 | `src/core/arguments.ts` | Bounded nested-argument traversal and stable leaf paths. |
 | `src/core/taint.ts` | Source inference + value-based taint detection. |
+| `src/core/output-policy.ts` | Pure output-label policy and trusted declassification. |
 | `src/core/destination.ts` | External destination / cloud-metadata detection. |
 | `src/core/path-policy.ts` | Sensitive credential-path detection with bounded operator globs. |
 | `src/core/command-risk.ts` | Bounded high-confidence destructive/network command checks. |
@@ -86,6 +94,22 @@ On a successful result only:
 3. The toolchain guard always records the successful capability event, with any produced context ids. Empty or unindexable results therefore preserve execution order without claiming data provenance.
 
 Failures never record "data obtained".
+
+## Data flow (post-execute)
+
+1. The adapter derives inherited labels from the call arguments and source labels from the
+   executed tool's capability/name class.
+2. Deterministic detectors inspect the normalized result value, model-facing content and
+   additional contexts without retaining them in a proof.
+3. An exact-name trusted declassifier may remove configured inherited labels only.
+4. Source and detected labels are added after declassification, restoring any label still
+   evidenced by the actual output.
+5. A configured blocked label returns DSH `block` feedback in enforce mode. Observe mode
+   records `would_block` and accepts the result.
+6. Downstream replacement projections are inspected before the final decision returns.
+
+The final label set is cached only until `tools/result`, where it seeds the bounded context
+entry. This makes the reduced label set available to later calls without persisting content.
 
 ## Why the core is DSH-free
 

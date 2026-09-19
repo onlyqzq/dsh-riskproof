@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ToolchainGuard } from "../../src/toolchain/guard.js";
 import { RuntimeState } from "../../src/dsh/runtime-state.js";
 import type { RiskProofConfig } from "../../src/config.js";
-import { POLICY_DEFAULTS, PROOF_DEFAULTS, PROVENANCE_DEFAULTS, TOOLCHAIN_DEFAULTS } from "../../src/config.js";
+import { OUTPUT_DEFAULTS, POLICY_DEFAULTS, PROOF_DEFAULTS, PROVENANCE_DEFAULTS, TOOLCHAIN_DEFAULTS } from "../../src/config.js";
 
 function config(overrides: Partial<RiskProofConfig> = {}): RiskProofConfig {
   return {
@@ -14,6 +14,7 @@ function config(overrides: Partial<RiskProofConfig> = {}): RiskProofConfig {
     policy: { ...POLICY_DEFAULTS },
     proof: { ...PROOF_DEFAULTS },
     ...overrides,
+    output: overrides.output ?? { ...OUTPUT_DEFAULTS, trustedDeclassifiers: {} },
   };
 }
 

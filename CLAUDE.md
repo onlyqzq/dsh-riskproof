@@ -29,6 +29,7 @@ and blocks or asks *before* the side effect executes, with structured evidence.
 - `src/config.ts` — Schemastery config schema (single source of tunables).
 - `src/dsh/` — the only code that touches DSH types (adapter / lifecycle).
 - `src/core/` — pure, deterministic engine + types + taint + destination.
+- `src/core/output-policy.ts` — output IFC + operator-pinned declassification.
 - `src/classification/` — deterministic capability classifier.
 - `src/provenance/` — bounded context tracker + mapper.
 - `src/toolchain/` — cross-tool EIT/PAT/NAT state.
@@ -58,5 +59,6 @@ After coding:
 - No LLM in the security decision path.
 - No re-implementing tool dispatch, approval, or lifecycle.
 - No raw arguments/results/credentials in proofs.
+- Only exact operator-configured tools may declassify, and detected output labels are restored.
 - No unbounded state; every tracker is bounded.
 - RiskProof must never turn another plugin's `deny` into `allow`.

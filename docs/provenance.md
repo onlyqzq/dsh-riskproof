@@ -45,6 +45,11 @@ Taint is produced three ways, additively:
 2. **Value detection** — deterministic patterns for secrets (`sk-…`, `api_key=…`), PII (email, phone), financial data, patient data, customer ids (`CUST-8842`), source code, and internal documents.
 3. **Source inference** — a provenance id is inspected for known source keywords.
 
+Ordinary results union inherited, kind-based and detected labels. In v0.4, an exact-name
+operator-approved declassifier may remove selected **inherited** labels at `tools/post-execute`.
+Kind-based and value-detected labels are applied afterward, so sensitive data that remains
+in the result is deterministically re-tainted. See [configuration.md](configuration.md).
+
 ## Honest limits
 
 The mapper recovers data that is *copied* as an exact or bounded substring. It does **not** track:

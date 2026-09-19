@@ -193,9 +193,17 @@ export interface SecurityProof {
 
 export interface ExecutionReceipt {
   gate: "allow" | "ask" | "deny" | "error";
-  outcome: "pending" | "blocked" | "succeeded" | "error";
+  outcome: "pending" | "blocked" | "output_blocked" | "succeeded" | "error";
   completedAt?: string;
   durationMs?: number;
+  output?: OutputControlReceipt;
+}
+
+/** Redacted output-policy result: labels only, never returned content. */
+export interface OutputControlReceipt {
+  action: "allow" | "block" | "would_block";
+  taints: TaintLabel[];
+  declassifiedTaints: TaintLabel[];
 }
 
 /** Strictest-decision ordering helpers. */

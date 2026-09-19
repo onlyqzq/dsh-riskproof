@@ -5,6 +5,7 @@ import {
   POLICY_DEFAULTS,
   POLICY_PRESETS,
   PROVENANCE_DEFAULTS,
+  OUTPUT_DEFAULTS,
   resolveRiskProofConfig,
   type RiskProofConfig,
 } from "../../src/config.js";
@@ -19,6 +20,7 @@ describe("dsh-riskproof Config", () => {
     expect(config.mode).toBe("enforce");
     expect(config.provenance).toEqual(PROVENANCE_DEFAULTS);
     expect(config.taint).toEqual({ enabled: true });
+    expect(config.output).toEqual(OUTPUT_DEFAULTS);
     expect(config.policy.sensitiveExternalAction).toBe("deny");
     expect(config.policy.unlistedExternalAction).toBe("ask");
     expect(config.policy.preset).toBe("balanced");
@@ -88,6 +90,17 @@ describe("dsh-riskproof Config", () => {
   it("defaults classification.overrides to an empty object", () => {
     const config = resolve({});
     expect(config.classification.overrides).toEqual({});
+  });
+
+  it("validates and deduplicates output taints and trusted declassifiers", () => {
+    const output = resolve({ output: {
+      blockedTaints: ["PII", "PII", "SECRET"],
+      trustedDeclassifiers: { redact_pii: ["PII", "PII"] },
+    } }).output;
+    expect(output.blockedTaints).toEqual(["PII", "SECRET"]);
+    expect(output.trustedDeclassifiers.redact_pii).toEqual(["PII"]);
+    expect(() => resolve({ output: { blockedTaints: ["NOT_A_TAINT"] } })).toThrow(/unsupported taint/);
+    expect(() => resolve({ output: { trustedDeclassifiers: { " ": ["PII"] } } })).toThrow(/keys/);
   });
 
   it("keeps the schema default for untrustedPrivateAccess", () => {
