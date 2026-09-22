@@ -43,6 +43,7 @@ export function dashboard(snapshot: ReportSnapshot, sessionId: string | null): D
         : RULE_GUIDANCE[p.matchedRules[0]?.id]?.[0] ?? "操作需要关注",
       rule: displayText(p.receipt?.output?.action === "block" ? "sensitive_tool_output" : p.matchedRules[0]?.id ?? ""),
       outcome: p.mode === "observe" ? "仅观察，未主动拦截"
+        : p.receipt?.output?.action === "block" ? "已拦截工具输出"
         : kind(p) === "blocked" ? "已阻止执行"
           : p.receipt?.outcome === "error" ? "工具执行出错"
             : p.receipt?.gate === "deny" ? "被其他规则阻止"

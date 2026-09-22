@@ -6,6 +6,15 @@ Track where tool inputs came from. Detect risky cross-tool data flows. Stop sens
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
+## Start here
+
+| Goal | Read |
+| --- | --- |
+| Install and try it | [Quick Start](#quick-start) · [Installation](docs/installation.md) |
+| Tune protection and task scope | [Configuration](docs/configuration.md) |
+| Understand or contribute to the project | [Architecture](docs/architecture.md) · [Development](docs/development.md) |
+| Find security boundaries and version records | [Documentation index](docs/README.md) |
+
 ---
 
 ## See protection beside your conversation
@@ -19,6 +28,7 @@ calls update it automatically. Click to open a compact overview; activity never 
 - Shows pending execution receipts and briefly acknowledges newly checked calls.
 - Displays a call-distribution ring, the last 24 checks and up to three recent risk chains.
 - Follows the selected conversation and removes stale charts when its connection is unavailable.
+- Separates initial sync from disconnection, offers manual reconnect, and displays task scope and record limits.
 
 ![Live call distribution and provenance](docs/assets/riskproof-web-trace.png)
 
@@ -80,11 +90,20 @@ RiskProof is a layer over the DSH Tool Runtime, not another Agent Runtime. It ne
 
 ## Quick Start
 
+Requires Node.js 22.19+, with DSH and pnpm installed. Install or update:
+
 ```bash
-# build and install the candidate from this checkout
+dsh plugin --profile web add dsh-riskproof@0.4.1
+```
+
+Alternatively, build a local package from the repository root:
+
+```bash
+# build and install from this checkout
+npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.1.tgz
 
 # confirm the bundled patch was composed
 dsh --profile web --dump-config
@@ -92,8 +111,7 @@ dsh --profile web --dump-config
 
 The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. Restart the profile to see the beacon, then click it to inspect the current conversation.
 
-This workspace is the **0.4.0 release candidate, not yet published to npm**. Before publication,
-use the [local tarball instructions](docs/installation.md). Installation, SDK host startup,
+The current version is **0.4.1**. See [installation and update instructions](docs/installation.md). Installation, SDK host startup,
 commands and tool execution have been verified on DSH 0.1.0-rc.7 and 0.1.2-rc.1.
 Chrome desktop and narrow-viewport Web acceptance also passed on DSH 0.1.2-rc.1,
 including provenance and read-only denials through the real Agent loop with a local
@@ -248,19 +266,11 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 
 ## Documentation
 
-- [Installation](docs/installation.md)
-- [v0.4 output control and trusted declassification](docs/v0.4-product-upgrade.md)
-- [v0.3 product research](docs/v0.3-product-upgrade.md)
-- [v0.3 validation](docs/v0.3-validation.md)
-- [Architecture](docs/architecture.md)
-- [Security model](docs/security-model.md)
-- [Provenance & taint](docs/provenance.md)
-- [Toolchain model](docs/toolchain.md)
-- [Configuration](docs/configuration.md)
-- [Development](docs/development.md)
-- [v0.2 security-plugin benchmark](docs/v0.2-security-plugin-benchmark.md)
-- [Awesome DSH Plugin review alignment](docs/awesome-dsh-plugin-review.md)
-- [Migrating from RiskProof (MCP)](docs/migration-from-riskproof.md)
+See the [documentation index](docs/README.md) for guides, security design and version records.
+
+- **Use**: [Installation](docs/installation.md) · [Configuration](docs/configuration.md) · [Web acceptance](docs/web-acceptance.zh-CN.md)
+- **Develop**: [Architecture](docs/architecture.md) · [Development](docs/development.md)
+- **Security**: [Security model](docs/security-model.md) · [Provenance & taint](docs/provenance.md) · [Toolchain](docs/toolchain.md)
 
 ## Roadmap
 
@@ -281,7 +291,7 @@ See [docs/security-model.md](docs/security-model.md) for the complete threat mod
 - Execution-token correlation between policy gates and final results
 - Taint inheritance through intermediate tools; bounded, isolated session state
 
-### v0.4 (current candidate)
+### v0.4 (current)
 
 - Output-side information-flow control before results reach model context
 - Default credential-output blocking with configurable label selection

@@ -88,6 +88,9 @@ describe("v0.4 output-side information-flow control", () => {
       declassifiedTaints: [],
     });
     expect(JSON.stringify(proof)).not.toContain("opaque-credential-value");
+    const overview = dashboard(runtime.report("session-1"), "session-1");
+    expect(overview.counts.blocked).toBe(1);
+    expect(overview.risks[0].outcome).toBe("已拦截工具输出");
     const persisted = readFileSync(file, "utf8");
     expect(persisted).toContain('"action":"block"');
     expect(persisted).toContain('"outcome":"output_blocked"');

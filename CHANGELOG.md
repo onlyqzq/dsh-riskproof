@@ -6,7 +6,15 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## 0.4.0 — candidate (unpublished)
+## [0.4.1] — 2026-09-22
+
+- Clarify first-sync, no-session and recording-disabled states; add manual reconnect,
+  task scope and retained-record limits to the Web overview.
+- Distinguish blocked tool output from tools denied before execution in risk receipts.
+- Organize documentation by use case, complete the module map and expand client CSS
+  into readable rules without adding dependencies.
+
+## [0.4.0] — 2026-09-19
 
 - Add output-side information-flow control on DSH `tools/post-execute`, before
   model-visible tool results are committed.

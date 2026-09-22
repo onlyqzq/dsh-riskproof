@@ -57,6 +57,8 @@ try {
   await page.screenshot({ path: join(artifacts, '01-live-beacon.png') });
   await beacon.click();
   await page.getByText('等待第一条工具记录', { exact: true }).waitFor();
+  assert.match(await page.locator('.rp-scope').innerText(), /常规任务/);
+  assert.match(await page.locator('.rp-footnote').innerText(), /未触发规则不代表绝对安全/);
   await page.screenshot({ path: join(artifacts, '02-empty-overview.png') });
   const close = async () => { await page.getByRole('button', { name: '收起安全概览' }).click(); };
   await close();
@@ -93,6 +95,7 @@ try {
   await prompt('只读写入测试');
   await page.waitForFunction(() => document.querySelector('.rp-count-blocked')?.textContent === '2');
   await beacon.click();
+  assert.match(await page.locator('.rp-scope').innerText(), /只读任务/);
   assert.equal(await page.locator('.rp-total strong').textContent(), '3');
   assert.equal(await page.locator('.rp-count-clear').textContent(), '1');
   assert.equal(await page.locator('.rp-risk').count(), 2);
@@ -131,9 +134,15 @@ try {
   });
   await page.waitForFunction(() => document.querySelector('.rp-root')?.dataset.state === 'offline');
   assert(await page.locator('.rp-data').isHidden());
+  await beacon.click();
+  await page.getByRole('button', { name: '重新连接', exact: true }).click();
+  await page.waitForFunction(() => !document.querySelector('.rp-retry')?.disabled);
+  assert(await page.locator('.rp-data').isHidden());
   await page.unroute('**/riskproof/**');
+  await page.getByRole('button', { name: '重新连接', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('.rp-root')?.dataset.state === 'ready');
-  checks.push('RPC failure removes stale chart; automatic recovery returns current-session state');
+  assert(await page.locator('.rp-retry').isHidden());
+  checks.push('RPC failure removes stale chart; manual retries preserve failure state and recover current-session data');
   assert.equal(await page.locator('.rp-root').count(), 1);
   assert.equal(await page.locator('dialog.riskproof-report-dialog').count(), 0);
   assert.deepEqual(failures, []);

@@ -72,6 +72,15 @@ RiskProof is a single Cordis plugin (`dsh-riskproof`) layered over the DSH Tool 
 | `src/provenance/` | Bounded ContextTracker + ProvenanceMapper. |
 | `src/toolchain/guard.ts` | Cross-tool EIT/PAT/NAT state. |
 | `src/proof/` | Privacy-preserving ProofStore + redaction. |
+| `src/experience/` | Host-independent text reports, redacted dashboard snapshots and isolated rehearsals. |
+| `src/dsh/experience.ts` | Native commands and the read-only report tool. |
+| `src/dsh/dashboard.ts` | Read-only status endpoint on the host's authenticated RPC connection. |
+| `src/client/` | Browser beacon, panel, styles and session-aware polling; no policy decisions. |
+
+The display path is `runtime.report()` → `experience/dashboard.ts` → authenticated
+DSH RPC → `client/panel.ts`. Only redacted metadata reaches the panel. Pre-execution
+denials and post-execution output blocks have distinct receipt labels: blocking a
+result does not imply that the tool body or its side effects never ran.
 
 ## Data flow (pre-execute)
 

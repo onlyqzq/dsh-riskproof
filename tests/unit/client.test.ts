@@ -26,7 +26,11 @@ afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); document.body.replace
 
 describe("live beacon safety and lifecycle", () => {
   it("stays closed during actual updates, renders bounded text safely, and clears command content", async () => {
-    const state = base(); const ui = mount(state); await settle();
+    const state = base(); const ui = mount(state);
+    expect($('.rp-brand small').textContent).toBe('正在同步当前对话');
+    expect($('.rp-root').dataset.state).toBe('idle');
+    expect($('.rp-data').hidden).toBe(true);
+    await settle();
     expect($('.rp-panel').hidden).toBe(true); expect($('.rp-brand small').textContent).toContain("等待工具调用");
     $('.rp-beacon').click(); await settle(); expect($('.rp-panel').hidden).toBe(false);
     $('.rp-close').click();
@@ -56,13 +60,23 @@ describe("live beacon safety and lifecycle", () => {
     ui.call.mockImplementationOnce(() => new Promise(resolve => { reply = resolve; }));
     const tick = vi.advanceTimersByTimeAsync(1000); await Promise.resolve(); await tick;
     ui.call.mockResolvedValue({ ok: true, value: { ...base(), sessionId: 'b' } });
-    ui.select('b'); await settle();
+    ui.select('b');
+    expect($('.rp-brand small').textContent).toBe('正在同步当前对话');
+    expect($('.rp-data').hidden).toBe(true);
+    await settle();
     reply({ ok: true, value: { ...base(), counts: { ...base().counts, checked: 99 } } }); await settle();
     expect($('.rp-total strong').textContent).toBe('0');
     ui.call.mockRejectedValue(new Error('offline')); await vi.advanceTimersByTimeAsync(1000);
     expect($('.rp-root').dataset.state).toBe('offline'); expect($('.rp-data').hidden).toBe(true);
-    ui.call.mockResolvedValue({ ok: true, value: { ...base(), sessionId: 'b' } }); await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-retry').hidden).toBe(false);
+    ui.call.mockImplementationOnce(() => new Promise(resolve => { reply = resolve; }));
+    const calls = ui.call.mock.calls.length;
+    $('.rp-retry').click(); $('.rp-retry').click();
+    expect(ui.call).toHaveBeenCalledTimes(calls + 1);
+    expect($('.rp-retry').textContent).toBe('正在重连…');
+    reply({ ok: true, value: { ...base(), sessionId: 'b' } }); await settle();
     expect($('.rp-root').dataset.state).toBe('ready');
+    expect($('.rp-retry').hidden).toBe(true);
     ui.dispose();
   });
   it("shows observation, partial detection and disabled recording without a false protection claim", async () => {
@@ -72,6 +86,7 @@ describe("live beacon safety and lifecycle", () => {
     expect($('.rp-brand small').textContent).toContain('部分检测');
     state.proofEnabled = false; await vi.advanceTimersByTimeAsync(1000);
     expect($('.rp-total strong').textContent).toBe('—'); expect($('.rp-notice').textContent).toContain('记录已关闭');
+    expect($('.rp-empty strong').textContent).toBe('证据记录已关闭');
     state.proofEnabled = true; state.partial = false; state.counts.pending = 1; await vi.advanceTimersByTimeAsync(1000);
     expect($('.rp-root').dataset.state).toBe('working');
     state.counts.pending = 0; state.counts.attention = 1; await vi.advanceTimersByTimeAsync(1000);
@@ -81,6 +96,20 @@ describe("live beacon safety and lifecycle", () => {
     expect($('.rp-brand small').textContent).toContain('已检查新的');
     await vi.advanceTimersByTimeAsync(2000); expect($('.rp-brand small').textContent).toContain('已检查 1');
     state.sessionId = null; ui.select(); await settle(); expect($('.rp-brand small').textContent).toContain('请选择对话');
+    expect($('.rp-root').dataset.state).toBe('idle');
+    expect($('.rp-data').hidden).toBe(true);
+    expect($('.rp-retry').hidden).toBe(true);
+    ui.dispose();
+  });
+  it("shows the current task scope and retained-record boundary", async () => {
+    const state = base(); const ui = mount(state); await settle();
+    expect($('.rp-scope').textContent).toBe('任务范围：常规任务 · 执行防护');
+    expect($('.rp-footnote').textContent).toContain(`最多 ${state.limit} 条`);
+    expect($('.rp-footnote').textContent).toContain('未触发规则不代表绝对安全');
+    state.taskMode = 'read-only'; await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-scope').textContent).toContain('只读任务');
+    state.taskMode = 'local-only'; state.mode = 'observe'; await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-scope').textContent).toBe('任务范围：本地任务 · 观察模式');
     ui.dispose();
   });
   it("pauses hidden-tab reads, resumes when visible, and rejects mismatched snapshots", async () => {

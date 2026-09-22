@@ -8,7 +8,7 @@
 ## Setup
 
 ```bash
-npm install
+npm ci
 ```
 
 ## Commands
@@ -20,7 +20,7 @@ npm install
 | `npm run typecheck` | strict typecheck of `src/` |
 | `npm run typecheck:test` | strict typecheck of `src/` + `tests/` |
 | `npm run check:marketplace` | validate Awesome DSH Plugin-facing package metadata |
-| `npm run verify` | source/test typecheck + build + test |
+| `npm run verify` | source/test typecheck + package metadata + build + tests + smoke-runner checks |
 | `npm run test:coverage` | run tests and enforce coverage thresholds |
 | `npm run check:dsh` | install exact tarball, boot the real host, exercise commands and protection |
 | `npm run test:smoke-runner` | check legacy/RPC shutdown, timeouts and failure handling |
@@ -29,13 +29,23 @@ npm install
 
 ## Layout
 
-- `src/core/` — pure deterministic engine; must stay DSH-free.
-- `src/dsh/` — the only code importing DSH types.
-- `src/client/` — browser beacon, compact charts and session-aware polling; built into the DSH module-loader format.
-- `scripts/fixtures/` — private Web acceptance fixtures, excluded from the npm package.
-- `tests/unit/` — pure unit tests.
-- `tests/security/` — attack-chain regression fixtures.
-- `tests/integration/` — real Cordis plugin lifecycle tests.
+| Area | Responsibility |
+| ---- | -------------- |
+| `src/index.ts`, `src/config.ts` | Plugin entry and deployment configuration |
+| `src/core/`, `src/classification/` | Pure deterministic policy, types and capability detection; no DSH imports |
+| `src/provenance/`, `src/toolchain/`, `src/proof/` | Bounded provenance, attack-chain state and redacted evidence |
+| `src/dsh/` | DSH lifecycle, commands, report tool and authenticated dashboard RPC |
+| `src/experience/` | Host-independent report/dashboard presentation and isolated rehearsals |
+| `src/client/` | Browser beacon, panel and styles; compiled into the DSH module-loader format |
+| `tests/unit/`, `tests/integration/`, `tests/security/` | Unit/client checks, host integration and security regressions |
+| `scripts/`, `scripts/fixtures/` | Build and acceptance tools; private fixtures excluded from the npm package |
+| `demo/`, `examples/` | Runnable demo and configuration examples |
+| `docs/`, `artifacts/` | Documentation and ignored local validation outputs |
+
+See [Architecture](architecture.md) for the call flow and individual module responsibilities.
+For a UI change, start with `src/client/panel.ts` and `src/client/styles.ts`, and run
+`npm test -- tests/unit/client.test.ts`. Run `npm run verify` before submitting;
+packaged browser behavior is checked separately with `npm run check:web`.
 
 ## Adding a rule
 
@@ -53,7 +63,7 @@ npm pack
 Then install into a fresh profile:
 
 ```bash
-DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.4.0.tgz
+DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.4.1.tgz
 DSH_HOME=/tmp/dsh-riskproof-smoke dsh --profile test --dump-config
 ```
 

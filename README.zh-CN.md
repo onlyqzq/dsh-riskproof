@@ -6,6 +6,15 @@ DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次�
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
+## 从这里开始
+
+| 你的目标 | 入口 |
+| --- | --- |
+| 安装并开始使用 | [快速开始](#快速开始) · [安装与首次使用](docs/installation.md) |
+| 调整防护模式、规则和任务范围 | [配置参考](docs/configuration.md) |
+| 理解项目结构或参与开发 | [架构与模块职责](docs/architecture.md) · [开发指南](docs/development.md) |
+| 查找验收记录、版本设计和安全边界 | [文档导航](docs/README.md) |
+
 ---
 
 ## 在对话旁，看见防护正在工作
@@ -19,6 +28,7 @@ DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次�
 - **调用时反馈**：等待执行回执时显示工作状态，新检查完成后短暂反馈。
 - **风险可追溯**：点击查看调用分布圆环、最近 24 次活动及最多 3 条风险来源链。
 - **会话独立**：切换对话立即切换记录；连接中断时隐藏旧图表并提示等待同步。
+- **状态明确**：首次同步、断线重连分别提示；概览显示任务范围和统计边界，断线时可手动重连。
 
 ![当前对话的调用分布与风险来源链](docs/assets/riskproof-web-trace.png)
 
@@ -76,11 +86,20 @@ RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 
 
 ## 快速开始
 
+需要 Node.js 22.19+，并已安装 DSH 和 pnpm。安装或更新：
+
 ```bash
-# 在本仓库中构建并安装候选版
+dsh plugin --profile web add dsh-riskproof@0.4.1
+```
+
+也可在本仓库根目录构建本地安装包：
+
+```bash
+# 在本仓库中构建并安装
+npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.1.tgz
 
 # 确认包内 patch 已被组合
 dsh --profile web --dump-config
@@ -88,7 +107,7 @@ dsh --profile web --dump-config
 
 该包声明了 DSH bundle，`plugin add` 自动组合 `riskproof` 行。重启该 profile 后，即可看到常驻安全浮标；点击查看当前对话概览。支持原生命令的界面也可通过 `/` 搜索 RiskProof。
 
-当前工作区为 **0.4.0 发布候选版，尚未发布到 npm**。发布前请使用 [本地安装包方式](docs/installation.md)。
+当前版本为 **0.4.1**。完整步骤见 [安装与更新](docs/installation.md)。
 已验证 DSH 0.1.0-rc.7 与 0.1.2-rc.1 的安装、SDK 宿主启动、命令和工具管线；DSH 0.1.2-rc.1 的 Chrome 桌面与窄屏 Web 验收已通过，含真实 Agent 工具管线的来源拦截和只读拦截（本地模拟模型驱动）。详见 [验收记录](docs/v0.3-validation.md) 和 [Web 操作步骤](docs/web-acceptance.zh-CN.md)。
 
 如需调整，可在随后加载的 profile `cordis.patch.yml` 中覆盖 bundle 行：
@@ -138,6 +157,14 @@ sequenceDiagram
 ```
 
 同样的流程被做成确定性的回归测试，见 [tests/security/attack-chain.test.ts](tests/security/attack-chain.test.ts)。
+
+无需配置模型或 DSH profile，也可以在安装依赖后运行本地演示：
+
+```bash
+npm run demo
+```
+
+演示通过真实 DSH 工具管线运行三个模拟工具，见 [演示说明](demo/README.md)。
 
 ## 功能
 
@@ -232,19 +259,11 @@ RiskProof **不能替代**：
 
 ## 文档
 
-- [安装](docs/installation.md)
-- [v0.4 输出控制与可信降密](docs/v0.4-product-upgrade.md)
-- [v0.3 产品迭代与榜单调研](docs/v0.3-product-upgrade.md)
-- [v0.3 验收记录](docs/v0.3-validation.md)
-- [架构](docs/architecture.md)
-- [安全模型](docs/security-model.md)
-- [来源与污点](docs/provenance.md)
-- [工具链模型](docs/toolchain.md)
-- [配置](docs/configuration.md)
-- [开发](docs/development.md)
-- [v0.2 安全插件对比与迭代依据](docs/v0.2-security-plugin-benchmark.md)
-- [Awesome DSH Plugin 收录审核对齐记录](docs/awesome-dsh-plugin-review.md)
-- [从 RiskProof (MCP) 迁移](docs/migration-from-riskproof.md)
+完整目录见 [文档导航](docs/README.md)，按使用、开发、安全设计和版本记录分组。
+
+- **使用**：[安装](docs/installation.md) · [配置](docs/configuration.md) · [Web 验收步骤](docs/web-acceptance.zh-CN.md)
+- **开发**：[架构](docs/architecture.md) · [开发指南](docs/development.md)
+- **安全**：[安全模型](docs/security-model.md) · [来源与污点](docs/provenance.md) · [工具链](docs/toolchain.md)
 
 ## 路线图
 
@@ -265,7 +284,7 @@ RiskProof **不能替代**：
 - 按执行 token 关联门控与最终结果的回执
 - 中间工具结果继承敏感标签；会话隔离与有界状态
 
-### v0.4（当前候选版）
+### v0.4（当前版本）
 
 - 在结果进入模型上下文前执行输出侧信息流控制
 - 默认拦截凭据输出，并允许配置需拦截的标签

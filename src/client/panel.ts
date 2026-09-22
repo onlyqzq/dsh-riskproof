@@ -21,16 +21,19 @@ export function apply(ctx: ClientContext): void {
   // This template is static. All runtime metadata is assigned with textContent.
   root.innerHTML = `<section class="rp-panel" id="riskproof-panel" role="region" aria-label="当前对话安全概览" hidden>
     <div class="rp-head"><div><div class="rp-eyebrow">RISKPROOF / LIVE</div><h2 class="rp-title">当前对话安全概览</h2></div><button class="rp-close" aria-label="收起安全概览">×</button></div>
-    <div class="rp-status"></div><div class="rp-data">
+    <div class="rp-status-row"><div class="rp-status"></div><button class="rp-retry" hidden>重新连接</button></div><div class="rp-data">
+    <p class="rp-scope"></p>
     <div class="rp-overview"><div class="rp-ring" role="img"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="51" stroke="var(--rp-line)"/><g class="rp-segments"></g></svg><div class="rp-total"><strong>0</strong><span>已检查调用</span></div></div><div class="rp-legend"></div></div>
     <div class="rp-section-label">调用活动<small>最近 24 次</small></div><div class="rp-activity" role="img"></div>
     <div class="rp-section-label">最近风险<small class="rp-risk-count"></small></div><div class="rp-risks"></div>
-    <div class="rp-notice" hidden></div></div>
+    <div class="rp-notice" hidden></div><p class="rp-footnote"></p></div>
     <details class="rp-details" hidden><summary>查看本次命令输出</summary><pre></pre></details>
     </section><button class="rp-beacon" aria-label="RiskProof 当前对话安全状态" aria-controls="riskproof-panel" aria-expanded="false"><span class="rp-orb">${shield}</span><span class="rp-brand"><strong>RiskProof</strong><small aria-live="polite"></small></span><span class="rp-dot"></span></button>`;
   const find = <T extends Element = HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const panel = find<HTMLElement>(".rp-panel"); const beacon = find<HTMLButtonElement>(".rp-beacon");
+  const retry = find<HTMLButtonElement>(".rp-retry");
   let current: string | null = null; let data: Dashboard | undefined; let connected = false;
+  let loading = true;
   let disposed = false; let controller: AbortController | undefined; let generation = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pulseUntil = 0; let lastId: string | undefined;
@@ -41,8 +44,8 @@ export function apply(ctx: ClientContext): void {
   };
   function render() {
     const c = data?.counts;
-    const status = !connected ? "连接中断，等待恢复"
-      : !current ? "请选择对话"
+    const status = !current ? "请选择对话"
+      : !connected ? loading ? "正在同步当前对话" : "连接中断，等待恢复"
         : !data?.proofEnabled ? "证据记录已关闭"
           : data.mode === "observe" ? "仅观察，不主动拦截"
             : data.partial ? "部分检测已关闭"
@@ -51,12 +54,18 @@ export function apply(ctx: ClientContext): void {
                 : Date.now() < pulseUntil ? "已检查新的工具调用"
                   : c?.attention ? `${c.attention} 条记录需关注`
                       : c?.checked ? `已检查 ${c.checked} 次调用` : "等待工具调用";
-    root.dataset.state = !connected ? "offline" : c?.blocked ? "blocked" : c?.pending || Date.now() < pulseUntil ? "working"
+    root.dataset.state = !current || !connected && loading ? "idle" : !connected ? "offline" : c?.blocked ? "blocked" : c?.pending || Date.now() < pulseUntil ? "working"
       : data?.mode === "observe" || data?.partial || !data?.proofEnabled || c?.attention ? "attention" : "ready";
     find(".rp-brand small").textContent = status; find(".rp-status").textContent = status;
     beacon.setAttribute("aria-label", `RiskProof：${status}。查看安全概览`);
-    find<HTMLElement>(".rp-data").hidden = !connected || !data;
-    if (!data || !connected) return;
+    retry.hidden = !current || connected || loading;
+    retry.disabled = !!controller;
+    retry.textContent = controller ? "正在重连…" : "重新连接";
+    find<HTMLElement>(".rp-data").hidden = !current || !connected || !data;
+    if (!current || !data || !connected) return;
+    const task = data.taskMode === "read-only" ? "只读任务" : data.taskMode === "local-only" ? "本地任务" : "常规任务";
+    find(".rp-scope").textContent = `任务范围：${task} · ${data.mode === "observe" ? "观察模式" : "执行防护"}`;
+    find(".rp-footnote").textContent = `仅统计本次运行保留的当前会话记录（最多 ${data.limit} 条）。未触发规则不代表绝对安全。`;
     find(".rp-total strong").textContent = data.proofEnabled ? String(c!.checked) : "—";
     const legend = find(".rp-legend"); legend.replaceChildren();
     const segments = find(".rp-segments"); segments.replaceChildren();
@@ -94,7 +103,7 @@ export function apply(ctx: ClientContext): void {
     }
     if (!data.risks.length) {
       const empty = element("div", "rp-empty"); empty.innerHTML = shield;
-      empty.append(element("strong", "", c!.checked ? "暂未发现需关注的记录" : "等待第一条工具记录"), element("p", "", "开始日常任务后，这里会自动更新。")); risks.append(empty);
+      empty.append(element("strong", "", !data.proofEnabled ? "证据记录已关闭" : c!.checked ? "暂未发现需关注的记录" : "等待第一条工具记录"), element("p", "", !data.proofEnabled ? "启用插件的 proof.enabled 配置后，可查看调用记录。" : "开始日常任务后，这里会自动更新。")); risks.append(empty);
     }
     const notices = [!data.proofEnabled ? "证据记录已关闭，图表不代表实际调用数量。" : "", data.partial ? "部分检测已关闭，请检查插件配置。" : ""].filter(Boolean);
     const notice = find<HTMLElement>(".rp-notice"); notice.textContent = notices.join(" "); notice.hidden = !notices.length;
@@ -103,6 +112,7 @@ export function apply(ctx: ClientContext): void {
     if (disposed || document.hidden || controller) return;
     const version = generation; const requested = current;
     const request = new AbortController(); controller = request;
+    if (!connected) render();
     const timeout = setTimeout(() => request.abort(), 4000);
     try {
       const response = await ctx.connection.rpc.call("/riskproof", "status", { sessionId: requested }, request.signal);
@@ -117,6 +127,7 @@ export function apply(ctx: ClientContext): void {
       if (!disposed && generation === version) { connected = false; data = undefined; lastId = undefined; pulseUntil = 0; }
     } finally {
       clearTimeout(timeout);
+      if (generation === version) loading = false;
       if (controller === request) controller = undefined;
       if (!disposed) render();
     }
@@ -125,7 +136,7 @@ export function apply(ctx: ClientContext): void {
     const id = ctx.sessions.list.getSnapshot().current ?? null;
     if (id === current) return;
     generation++; controller?.abort(); controller = undefined; current = id; data = undefined;
-    connected = false; pulseUntil = 0; lastId = undefined;
+    connected = false; loading = true; pulseUntil = 0; lastId = undefined;
     find(".rp-details pre").textContent = ""; find<HTMLElement>(".rp-details").hidden = true; find(".rp-details").removeAttribute("open");
     render(); void refresh();
   };
@@ -133,6 +144,7 @@ export function apply(ctx: ClientContext): void {
   const escape = (event: KeyboardEvent) => { if (event.key === "Escape" && !panel.hidden) setOpen(false); };
   const outside = (event: PointerEvent) => { if (!panel.hidden && event.target instanceof Node && !root.contains(event.target)) { setOpen(false, false); } };
   beacon.addEventListener("click", () => setOpen(panel.hidden)); find(".rp-close").addEventListener("click", () => setOpen(false));
+  retry.addEventListener("click", () => { void refresh(); });
   ctx.effect(() => {
     document.head.append(style); document.body.append(root);
     const unsubscribe = ctx.sessions.list.subscribe(selection);

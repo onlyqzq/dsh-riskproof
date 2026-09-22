@@ -1,17 +1,20 @@
-# RiskProof 0.3.0 浮标界面验收
+# RiskProof Web 浮标界面验收
 
 当前界面是常驻安全浮标，点击后才展开图表概览。日常使用不需要命令或模拟演练。
-本次已在 macOS、DSH 0.1.2-rc.1 和 Chrome 152 实测。
-自动验收及完整范围见 [验收记录](v0.3-validation.md)。
+本页为当前版本的操作清单；截图和此前在 macOS、DSH 0.1.2-rc.1、Chrome 152
+上的验证详情见 [v0.3 验收记录](v0.3-validation.md)。
 
 ## 安装与打开
 
 在仓库目录执行：
 
 ```bash
+npm ci
+mkdir -p artifacts
+npm pack --pack-destination artifacts
 # 每次验收用新目录，避免相同路径的 tarball 被缓存。
 export DSH_HOME="$(mktemp -d /tmp/riskproof-web-review.XXXXXX)"
-dsh plugin --profile web add "$PWD/artifacts/dsh-riskproof-0.3.0.tgz"
+dsh plugin --profile web add "$PWD/artifacts/dsh-riskproof-0.4.1.tgz"
 dsh --profile web --no-open --port 19843
 ```
 
@@ -25,6 +28,8 @@ dsh --profile web --no-open --port 19843
 2. 未产生工具调用时，显示“等待工具调用”，不能显示正在扫描。
 3. 点击浮标，展开“当前对话安全概览”：0 次检查、空活动条、等待第一条记录。
 4. 点击 ×、再次点击浮标、点击外部或按 Escape 均可收起。输入框保持可用。
+5. 首次读取和切换会话时显示“正在同步当前对话”；未选择会话时提示“请选择对话”。
+6. 概览显示当前任务范围、防护模式和记录上限；切换任务范围后应同步更新。
 
 ![常驻浮标](assets/riskproof-web-beacon.png)
 
@@ -42,7 +47,8 @@ dsh --profile web --no-open --port 19843
 | 一次读取成功、两次拦截 | 圆环合计 3，未触发风险 1，RiskProof 拦截 2，成功回执 1 |
 | 工具活动或风险发生 | 详情保持收起，不自动打断聊天 |
 | 切换新会话 | 立即清空上一会话数据，显示新会话的记录 |
-| RPC 连接失效 | 提示连接中断，隐藏旧图表；恢复后重新显示当前记录 |
+| RPC 连接失效 | 提示连接中断，隐藏旧图表；可点击“重新连接”，请求期间按钮禁用，也会自动重试 |
+| 敏感工具输出被拦截 | 标记“已拦截工具输出”，不能标记为“已阻止执行” |
 
 ![图表与风险来源链](assets/riskproof-web-trace.png)
 
@@ -58,7 +64,7 @@ dsh --profile web --no-open --port 19843
 - `/riskproof demo`：可选模拟演练，不增加图表计数，不是默认产品入口。
 - `riskproof_report`：模型可调用的只读报告，展开 DSH 工具行查看。
 - 观察模式明确显示“不主动拦截”，不会把建议算作 RiskProof 的实际拦截。
-- 关闭记录时显示提示；零条记录不能用来表示没有工具执行。
+- 关闭记录时显示“证据记录已关闭”，不再提示等待第一条记录；零条记录不能用来表示没有工具执行。
 - 统计范围是本次服务运行仍保留的当前会话记录，不是历史累计安全承诺。
 
 将浏览器缩窄到 390px，浮标收敛为盾牌按钮；展开概览应没有横向溢出、可以纵向滚动。
