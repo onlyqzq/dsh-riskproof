@@ -60,8 +60,13 @@ RiskProof is a single Cordis plugin (`dsh-riskproof`) layered over the DSH Tool 
 | `src/config.ts` | Schemastery schema; the single source of deployment tunables. |
 | `src/dsh/runtime.ts` | DSH adapter: `ToolExecution` → `ToolSecurityContext` → `PreToolDecision`; `ToolExecutionResult` → state updates. |
 | `src/dsh/decisions.ts` | Decision mapping (`require_approval` ↔ `ask`) and monotonic merge. |
+| `src/dsh/capability-resolver.ts` | Global/scoped capability caches and tool-change invalidation. |
+| `src/dsh/engine-policy.ts` | Translate deployment config decisions to core policy. |
+| `src/dsh/output-payload.ts` | Select original and downstream-replaced result projections for inspection. |
 | `src/dsh/runtime-state.ts` | Per-session state isolation. |
-| `src/core/engine.ts` | Pure deterministic policy evaluation. No DSH imports. |
+| `src/core/engine.ts` | Prepare detector inputs and aggregate rule results monotonically; preserve the public engine API. |
+| `src/core/policy.ts` | Engine policy types and default decisions. |
+| `src/core/rules/` | Ordered registry, shared argument view and rules grouped by egress, execution, provenance and invariants. |
 | `src/core/arguments.ts` | Bounded nested-argument traversal and stable leaf paths. |
 | `src/core/taint.ts` | Source inference + value-based taint detection. |
 | `src/core/output-policy.ts` | Pure output-label policy and trusted declassification. |
@@ -72,15 +77,33 @@ RiskProof is a single Cordis plugin (`dsh-riskproof`) layered over the DSH Tool 
 | `src/provenance/` | Bounded ContextTracker + ProvenanceMapper. |
 | `src/toolchain/guard.ts` | Cross-tool EIT/PAT/NAT state. |
 | `src/proof/` | Privacy-preserving ProofStore + redaction. |
+| `src/experience/types.ts` | Explicit report snapshot contract, independent of the DSH runtime class. |
 | `src/experience/` | Host-independent text reports, redacted dashboard snapshots and isolated rehearsals. |
 | `src/dsh/experience.ts` | Native commands and the read-only report tool. |
 | `src/dsh/dashboard.ts` | Read-only status endpoint on the host's authenticated RPC connection. |
-| `src/client/` | Browser beacon, panel, styles and session-aware polling; no policy decisions. |
+| `src/client/panel.ts` | Session-aware polling, interactions, command events and disposal. |
+| `src/client/view.ts` | Render redacted dashboard state into the DOM. |
+| `src/client/template.ts`, `styles.ts` | Static markup and styles; dynamic metadata uses `textContent`. |
+| `src/client/context.ts` | Minimal type contract for injected browser host services. |
 
 The display path is `runtime.report()` → `experience/dashboard.ts` → authenticated
 DSH RPC → `client/panel.ts`. Only redacted metadata reaches the panel. Pre-execution
 denials and post-execution output blocks have distinct receipt labels: blocking a
 result does not imply that the tool body or its side effects never ran.
+
+## Rule organization
+
+`core/rules/index.ts` is the single ordered registry. Rule modules import the shared
+context helpers and pure detectors, never the engine or DSH adapter:
+
+- `invariants.ts`: tool identity, task scope and unknown-tool policy.
+- `egress.ts`: metadata endpoints, domain restrictions and outbound sensitive data.
+- `execution.ts`: commands, local mutation and sensitive path access.
+- `provenance.ts`: ordered cross-tool ingestion, private access and disclosure.
+
+The engine evaluates every registered rule in order and folds decisions toward the
+strictest result. Keep that order stable when moving code: it also determines reason,
+evidence and remediation ordering, including the first rule rendered in the dashboard.
 
 ## Data flow (pre-execute)
 

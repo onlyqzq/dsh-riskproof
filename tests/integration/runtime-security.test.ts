@@ -12,7 +12,7 @@ import { RuntimeState } from "../../src/dsh/runtime-state.js";
 import { buildContext } from "../helpers.js";
 import { makeExec, makeMockCtx, allowNext, denyNext, successResult, errorResult } from "../dsh-mocks.js";
 
-describe("v0.3 identity and task contracts", () => {
+describe("identity and task contracts", () => {
   it("canonicalizes schemas and fails closed without replacing a changed baseline", () => {
     const a = toolFingerprint({ name: "read", parameters: { b: 2, a: [1, 2] } });
     expect(toolFingerprint({ name: "read", parameters: { a: [1, 2], b: 2 } })).toBe(a);
@@ -65,7 +65,7 @@ describe("v0.3 identity and task contracts", () => {
   });
 });
 
-describe("v0.3 visible receipts", () => {
+describe("visible receipts", () => {
   const defs = { read_file: { description: "Read a local file" }, send_email: { description: "Send an email" } };
 
   it("correlates concurrent results by token, not name or raw call id, and writes receipt events", async () => {

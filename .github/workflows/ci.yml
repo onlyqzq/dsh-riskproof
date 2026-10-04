@@ -36,6 +36,8 @@ jobs:
         run: npm run typecheck:test
       - name: Build
         run: npm run build
+      - name: Published browser bundle
+        run: npm run test:client-bundle
       - name: Smoke runner lifecycle regressions
         run: npm run test:smoke-runner
       - name: Unit + integration + security regression tests

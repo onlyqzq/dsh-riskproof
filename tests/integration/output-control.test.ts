@@ -11,7 +11,7 @@ import { allowNext, errorResult, makeExec, makeMockCtx, successResult } from "..
 
 const acceptNext = async () => ({ kind: "accept" as const });
 
-describe("v0.4 output-side information-flow control", () => {
+describe("output-side information-flow control", () => {
   it("blocks configured output labels", () => {
     const decision = evaluateOutputFlow(
       "get_secret",

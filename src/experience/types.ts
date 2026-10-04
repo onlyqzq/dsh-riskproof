@@ -1,0 +1,18 @@
+import type { PolicyPreset } from "../config.js";
+import type { SecurityProof, TaskMode } from "../core/types.js";
+
+/** Redacted runtime snapshot shared by text reports and the dashboard. */
+export interface ReportSnapshot {
+  mode: "observe" | "enforce";
+  preset: PolicyPreset;
+  language: "zh-CN" | "en";
+  taskMode: TaskMode;
+  proofEnabled: boolean;
+  provenanceEnabled: boolean;
+  taintEnabled: boolean;
+  toolchainEnabled: boolean;
+  outputEnabled: boolean;
+  persistent: boolean;
+  limit: number;
+  proofs: SecurityProof[];
+}

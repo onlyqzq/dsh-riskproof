@@ -1,8 +1,8 @@
-import type { RiskProofRuntime } from "../dsh/runtime.js";
+import type { ReportSnapshot } from "./types.js";
 import type { SecurityProof } from "../core/types.js";
 import { redactLogText } from "../proof/redaction.js";
 
-export type ReportSnapshot = ReturnType<RiskProofRuntime["report"]>;
+export type { ReportSnapshot } from "./types.js";
 
 export const RULE_GUIDANCE: Record<string, [string, string]> = {
   untrusted_code_execution: ["网页／外部内容影响了命令执行", "先核对命令来源，使用经过确认的命令内容。"],

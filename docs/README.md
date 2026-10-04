@@ -18,11 +18,12 @@
 | --- | --- |
 | [架构](architecture.md) | 模块职责、工具调用流程与生命周期 |
 | [开发指南](development.md) | 目录结构、构建、测试和打包命令 |
+| [手动推送与版本发布](releasing.zh-CN.md) | 日常 Git 推送、版本升级、npm / GitHub Release 和失败恢复 |
 | [贡献指南](../CONTRIBUTING.md) | 贡献约定和提交前检查 |
 | [更新记录](../CHANGELOG.md) | 已交付功能和未发布变更 |
 
-代码阅读顺序：`src/index.ts` → `src/dsh/runtime.ts` → `src/core/engine.ts`。
-界面阅读顺序：`src/dsh/dashboard.ts` → `src/experience/dashboard.ts` → `src/client/panel.ts`。
+代码阅读顺序：`src/index.ts` → `src/dsh/runtime.ts` → `src/core/engine.ts` → `src/core/rules/index.ts`。
+界面阅读顺序：`src/dsh/dashboard.ts` → `src/experience/dashboard.ts` → `src/client/panel.ts` → `src/client/view.ts`。
 
 ## 安全设计 / Security
 

@@ -29,6 +29,9 @@ and blocks or asks *before* the side effect executes, with structured evidence.
 - `src/config.ts` — Schemastery config schema (single source of tunables).
 - `src/dsh/` — the only code that touches DSH types (adapter / lifecycle).
 - `src/core/` — pure, deterministic engine + types + taint + destination.
+- `src/core/rules/` — ordered registry and rules grouped by security concern.
+- `src/core/policy.ts` — engine policy contract and defaults.
+- `src/client/` — browser lifecycle, DOM view, static template and styles.
 - `src/core/output-policy.ts` — output IFC + operator-pinned declassification.
 - `src/classification/` — deterministic capability classifier.
 - `src/provenance/` — bounded context tracker + mapper.
@@ -51,7 +54,8 @@ During coding:
 
 After coding:
 
-- `npm run verify` (typecheck + build + test)
+- `npm run verify` (typechecks + metadata + build + regression and artifact tests)
+- publishing instructions: `docs/releasing.zh-CN.md`
 - summarize changed files and how they map to the security model
 
 ## Do not drift

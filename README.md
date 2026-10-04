@@ -13,6 +13,7 @@ Track where tool inputs came from. Detect risky cross-tool data flows. Stop sens
 | Install and try it | [Quick Start](#quick-start) · [Installation](docs/installation.md) |
 | Tune protection and task scope | [Configuration](docs/configuration.md) |
 | Understand or contribute to the project | [Architecture](docs/architecture.md) · [Development](docs/development.md) |
+| Push code or publish a version | [Manual release guide (中文)](docs/releasing.zh-CN.md) |
 | Find security boundaries and version records | [Documentation index](docs/README.md) |
 
 ---

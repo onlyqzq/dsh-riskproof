@@ -6,6 +6,14 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Separate deterministic policy rules, DSH capability/config/output adapters, and
+  browser lifecycle/rendering modules while preserving public exports and rule order.
+- Define the report snapshot independently of the runtime implementation and group
+  regression suites by behavior rather than release number.
+- Add a published browser-bundle regression check to local verification and CI.
+- Document manual Git pushes and tag-triggered npm/GitHub releases in Chinese;
+  update architecture, contributor guidance and editor conventions.
+
 ## [0.4.1] — 2026-09-22
 
 - Clarify first-sync, no-session and recording-disabled states; add manual reconnect,

@@ -13,6 +13,7 @@ DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次�
 | 安装并开始使用 | [快速开始](#快速开始) · [安装与首次使用](docs/installation.md) |
 | 调整防护模式、规则和任务范围 | [配置参考](docs/configuration.md) |
 | 理解项目结构或参与开发 | [架构与模块职责](docs/architecture.md) · [开发指南](docs/development.md) |
+| 手动推送代码或发布新版本 | [推送与发布流程](docs/releasing.zh-CN.md) |
 | 查找验收记录、版本设计和安全边界 | [文档导航](docs/README.md) |
 
 ---

@@ -20,8 +20,8 @@ Thanks for contributing! RiskProof is a security plugin — small, focused, well
 ## Development setup
 
 ```bash
-npm install
-npm run verify      # lint + build + test
+npm ci
+npm run verify      # types + metadata + build + tests + script checks
 ```
 
 The test matrix is plain Vitest:
@@ -31,6 +31,18 @@ npm test                          # unit + integration + security regressions
 npm run typecheck                 # strict TS, no emit
 ```
 
+See [Development](docs/development.md) for the module map and commands, and
+[Manual push and release (中文)](docs/releasing.zh-CN.md) for the maintainer workflow.
+
+## Change boundaries
+
+- Keep host imports in `src/dsh/`; core policies must work without a running DSH host.
+- Preserve rule IDs, evaluation order, evidence, exported APIs and configuration defaults during refactors.
+- Keep runtime metadata out of `innerHTML`; the browser template contains static markup only.
+- Add browser runtime modules to `scripts/build-client.mjs` in dependency order and run the bundle test.
+- Commit source and the lockfile; build outputs and local acceptance artifacts stay ignored.
+- Follow the repository's two-space indentation and `.editorconfig` settings.
+
 ## Adding a tool capability mapping
 
 1. Reproduce the mis-classification in [tests/unit/classifier.test.ts](tests/unit/classifier.test.ts).
@@ -39,7 +51,7 @@ npm run typecheck                 # strict TS, no emit
 
 ## Adding a rule
 
-1. Add the rule to `src/core/engine.ts` with a stable `id`, `reason`, and `evidence`.
+1. Add the rule to the appropriate module in `src/core/rules/` with a stable `id`, `reason`, and `evidence`, then register it in `src/core/rules/index.ts`. Order affects receipts and the first rule shown in the UI.
 2. Add test vectors to [tests/unit/engine.test.ts](tests/unit/engine.test.ts).
 3. Update [docs/security-model.md](docs/security-model.md) if the rule changes the threat model.
 

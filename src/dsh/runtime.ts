@@ -3,8 +3,8 @@
 // ============================================================================
 // Translates DSH ToolExecution / ToolExecutionResult into the core security
 // model, evaluates it, and maps the decision back to the DSH PreToolDecision
-// vocabulary. Never imports MCP/HTTP/Python concerns; this is the only place
-// that touches DSH types.
+// vocabulary. Helper modules own capability resolution and output projections; this adapter
+// that coordinates DSH lifecycle events with the host-independent core.
 // ============================================================================
 
 import type { Context } from "@deepseek-ai/cordis";
@@ -14,14 +14,12 @@ import type {
   ToolExecution,
   ToolExecutionResult,
 } from "@deepseek-ai/dsh-tools";
-import type { Agent } from "@deepseek-ai/dsh-agent";
 import { createHash } from "node:crypto";
 import { toolFingerprint } from "../core/identity.js";
 import type { ExecutionReceipt, OutputControlReceipt, TaskMode } from "../core/types.js";
 
 import { resolveRiskProofConfig, type RiskProofConfig } from "../config.js";
 import type {
-  SecurityCapability,
   SecurityDecision,
   SecurityProof,
   TaintLabel,
@@ -32,77 +30,17 @@ import { argumentsAsRecord } from "../core/arguments.js";
 import { evaluate, type EnginePolicy } from "../core/engine.js";
 import { detectValueTaints, enrichArgumentTaints, inferKindFromTool, TAINT_BY_KIND } from "../core/taint.js";
 import { evaluateOutputFlow, type OutputFlowDecision } from "../core/output-policy.js";
-import { classifyTool } from "../classification/classifier.js";
-import { normalizeOverrides, type CapabilityOverrides } from "../classification/overrides.js";
+import { normalizeOverrides } from "../classification/overrides.js";
 import { ProofStore, newProofId, type ProofStoreStats } from "../proof/proof-store.js";
+import type { ReportSnapshot } from "../experience/types.js";
+import { CapabilityResolver } from "./capability-resolver.js";
+import { buildEnginePolicy } from "./engine-policy.js";
+import { outputPayload, postDecisionPayload } from "./output-payload.js";
 import { RuntimeState } from "./runtime-state.js";
 import {
-  configDecisionToInternal,
   decisionToPreToolDecision,
   mergePreToolDecisions,
 } from "./decisions.js";
-
-/** Cached capability resolution, invalidated on `tools/change`. */
-class CapabilityResolver {
-  private readonly globalCache = new Map<string, SecurityCapability[]>();
-  private scopedCache = new WeakMap<Agent, Map<string, SecurityCapability[]>>();
-
-  constructor(
-    private readonly ctx: Context,
-    private readonly overrides: CapabilityOverrides,
-  ) {}
-
-  resolve(name: string, agent?: Agent): SecurityCapability[] {
-    if (Object.hasOwn(this.overrides, name)) return [...this.overrides[name]];
-    let cache = this.globalCache;
-    if (agent) {
-      cache = this.scopedCache.get(agent) ?? new Map<string, SecurityCapability[]>();
-      this.scopedCache.set(agent, cache);
-    }
-    const cached = cache.get(name);
-    if (cached) return [...cached];
-
-    let definition = this.ctx.tools.get(name);
-    if (agent) definition = this.ctx.tools.get(name, agent) ?? definition;
-
-    const capabilities = classifyTool({
-      name,
-      description: definition?.description,
-      inputSchema: definition?.parameters,
-    });
-    cache.set(name, capabilities);
-    return [...capabilities];
-  }
-
-  invalidate(): void {
-    this.globalCache.clear();
-    this.scopedCache = new WeakMap<Agent, Map<string, SecurityCapability[]>>();
-  }
-}
-
-function buildEnginePolicy(config: RiskProofConfig["policy"]): EnginePolicy {
-  return {
-    sensitiveExternalAction: configDecisionToInternal(config.sensitiveExternalAction),
-    untrustedPrivateAccess: configDecisionToInternal(config.untrustedPrivateAccess),
-    untrustedCodeExecution: configDecisionToInternal(config.untrustedCodeExecution),
-    untrustedLocalMutation: configDecisionToInternal(config.untrustedLocalMutation),
-    credentialAccessAfterUntrusted: configDecisionToInternal(config.credentialAccessAfterUntrusted),
-    sensitivePathRead: configDecisionToInternal(config.sensitivePathRead),
-    sensitivePathMutation: configDecisionToInternal(config.sensitivePathMutation),
-    destructiveOperation: configDecisionToInternal(config.destructiveOperation),
-    remoteScriptExecution: configDecisionToInternal(config.remoteScriptExecution),
-    unlistedExternalAction: configDecisionToInternal(config.unlistedExternalAction),
-    unknownTool: configDecisionToInternal(config.unknownTool),
-    internalDomains: [...config.internalDomains],
-    blockedDomains: [...config.blockedDomains],
-    allowedExternalDomains: [...config.allowedExternalDomains],
-    sensitivePathPatterns: [...config.sensitivePathPatterns],
-  };
-}
-
-function argsAsRecord(args: unknown): Record<string, unknown> {
-  return argumentsAsRecord(args);
-}
 
 function assertCompatibleHost(ctx: Context): void {
   const tools = (ctx as unknown as { tools?: { get?: unknown } }).tools;
@@ -299,7 +237,7 @@ export class RiskProofRuntime {
   }
 
   /** Only return records for the caller's exact live agent scope. */
-  report(agentId: string | undefined) {
+  report(agentId: string | undefined): ReportSnapshot {
     const session = this.state.peek(agentId);
     return {
       mode: this.config.mode,
@@ -339,7 +277,7 @@ export class RiskProofRuntime {
 
   private evaluateOutput(exec: ToolExecution, payload: readonly unknown[]): OutputFlowDecision {
     const session = this.state.get(exec.agent?.id);
-    const args = argsAsRecord(exec.arguments);
+    const args = argumentsAsRecord(exec.arguments);
     const mapped = session.mapper.mapArguments(args);
     const inherited = this.config.taint.enabled
       ? Object.values(enrichArgumentTaints(args, mapped.provenance, mapped.taints)).flat()
@@ -392,7 +330,7 @@ export class RiskProofRuntime {
     const definition = this.ctx.tools.get(exec.name, exec.agent) ?? this.ctx.tools.get(exec.name);
     const digest = toolFingerprint(definition ?? { name: exec.name });
     const identityStatus = session.identity.check(exec.name, digest);
-    const args = argsAsRecord(exec.arguments);
+    const args = argumentsAsRecord(exec.arguments);
 
     let provenance = Object.create(null) as Record<string, string[]>;
     let taints = Object.create(null) as Record<string, TaintLabel[]>;
@@ -471,36 +409,4 @@ export class RiskProofRuntime {
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message.slice(0, 500) : "unknown error";
-}
-
-function outputPayload(result: Readonly<ToolExecutionResult>): unknown[] {
-  return result.isError
-    ? [result.content, result.additionalContexts]
-    : [result.value, result.content, result.additionalContexts];
-}
-
-function postDecisionPayload(
-  result: Readonly<ToolExecutionResult>,
-  decision: Extract<PostToolDecision, { kind: "accept" }>,
-): unknown[] {
-  const hasValue = Object.hasOwn(decision, "value");
-  const hasContent = Object.hasOwn(decision, "content");
-  const hasContexts = Object.hasOwn(decision, "additionalContexts");
-  if (!hasValue && !hasContent) {
-    return [...outputPayload(result), ...(hasContexts ? [decision.additionalContexts] : [])];
-  }
-  // A content-only replacement does not replace the canonical success value;
-  // keep evaluating it because Code Mode and the result observer can still
-  // consume that value even when Native model content was sanitized.
-  if (hasContent) {
-    return [
-      ...(!result.isError ? [result.value] : []),
-      decision.content,
-      ...(hasContexts ? [decision.additionalContexts] : []),
-    ];
-  }
-  return [
-    ...(hasValue ? [decision.value] : []),
-    ...(hasContexts ? [decision.additionalContexts] : []),
-  ];
 }
