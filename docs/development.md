@@ -87,7 +87,7 @@ npm pack
 Then install into a fresh profile:
 
 ```bash
-DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.4.1.tgz
+DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.5.0.tgz
 DSH_HOME=/tmp/dsh-riskproof-smoke dsh --profile test --dump-config
 ```
 
@@ -97,8 +97,9 @@ CI installs the tested DSH prereleases with `@deepseek-ai/cordis-plugin-hmr@1.0.
 and reuses that exact host binary for installation, Web boot and tool checks.
 HMR 1.0.19 removed the `registerConfig` API these prereleases require; allowing
 their dependency range to select it breaks host startup. The Web boot fixture
-also preloads HMR to avoid the host's dynamic service readiness race. These
-adjustments apply to the CI host only and do not change RiskProof's package
+also preloads HMR to avoid the host's dynamic service readiness race;
+`check:web` reuses the same startup fixture. These
+adjustments apply to acceptance hosts only and do not change RiskProof's package
 dependencies or policy.
 
 For the current security delta see [v0.4 iteration](v0.4-product-upgrade.md); for browser

@@ -12,7 +12,7 @@ A persistent security beacon shows redacted execution receipts. Deterministic ru
 Requires Node.js 22.19+, with DSH and pnpm installed:
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.4.1
+dsh plugin --profile web add dsh-riskproof@0.5.0
 dsh --profile web --dump-config
 ```
 
@@ -142,7 +142,7 @@ Alternatively, build a local package from the repository root:
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.1.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.5.0.tgz
 
 # confirm the bundled patch was composed
 dsh --profile web --dump-config
@@ -150,7 +150,7 @@ dsh --profile web --dump-config
 
 The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. Restart the profile to see the beacon, then click it to inspect the current conversation.
 
-The current version is **0.4.1**. See [installation and update instructions](docs/installation.md). Installation, SDK host startup,
+The current version is **0.5.0**. See [installation and update instructions](docs/installation.md). Installation, SDK host startup,
 commands and tool execution have been verified on DSH 0.1.0-rc.7 and 0.1.2-rc.1.
 Chrome desktop and narrow-viewport Web acceptance also passed on DSH 0.1.2-rc.1,
 including provenance and read-only denials through the real Agent loop with a local

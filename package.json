@@ -1,6 +1,6 @@
 {
   "name": "dsh-riskproof",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Provenance-aware execution and output security for DeepSeek Harness, with visible receipts and trusted declassification.",
   "type": "module",
   "sideEffects": false,

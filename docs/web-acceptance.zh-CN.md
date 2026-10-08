@@ -14,7 +14,7 @@ mkdir -p artifacts
 npm pack --pack-destination artifacts
 # 每次验收用新目录，避免相同路径的 tarball 被缓存。
 export DSH_HOME="$(mktemp -d /tmp/riskproof-web-review.XXXXXX)"
-dsh plugin --profile web add "$PWD/artifacts/dsh-riskproof-0.4.1.tgz"
+dsh plugin --profile web add "$PWD/artifacts/dsh-riskproof-0.5.0.tgz"
 dsh --profile web --no-open --port 19843
 ```
 

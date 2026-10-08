@@ -21,7 +21,9 @@ const cli = process.env.DSH_BIN ?? 'dsh';
 const install = spawnSync(cli, ['plugin', '--profile', 'web', 'add', tarball], { env, encoding: 'utf8', timeout: 60000 });
 assert.equal(install.status, 0, install.stderr + install.stdout);
 const patch = join(home, 'acceptance.patch.yml');
-writeFileSync(patch, `- id: riskproof\n  config:\n    experience:\n      language: ${language}\n- id: directory-picker\n  disabled: true\n- id: tools\n  config:\n    mode: native\n- id: session-title-llm\n  disabled: true\n- id: agent-default-model\n  config:\n    provider: riskproof-local-test\n    model: deterministic\n- insert:\n    - id: directory-picker-browse-test\n      name: '@deepseek-ai/dsh-host-directory-picker-browse'\n    - id: ui-directory-picker-browse-test\n      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'\n    - id: riskproof-web-acceptance-fixture\n      name: ${JSON.stringify(join(root, 'scripts/fixtures/web-acceptance.mjs'))}\n`);
+// Match CI's host startup fixture so HMR is ready before DSH watches patches.
+const bootPatch = readFileSync(join(root, 'scripts/fixtures/ci-web-boot.patch.yml'), 'utf8');
+writeFileSync(patch, bootPatch + `- id: riskproof\n  config:\n    experience:\n      language: ${language}\n- id: directory-picker\n  disabled: true\n- id: tools\n  config:\n    mode: native\n- id: session-title-llm\n  disabled: true\n- id: agent-default-model\n  config:\n    provider: riskproof-local-test\n    model: deterministic\n- insert:\n    - id: directory-picker-browse-test\n      name: '@deepseek-ai/dsh-host-directory-picker-browse'\n    - id: ui-directory-picker-browse-test\n      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'\n    - id: riskproof-web-acceptance-fixture\n      name: ${JSON.stringify(join(root, 'scripts/fixtures/web-acceptance.mjs'))}\n`);
 const server = spawn(cli, ['--profile', 'web', '--patch', patch, '--no-open', '--port', '0'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = ''; let browser; let page;
 const failures = [];

@@ -5,7 +5,7 @@
 Node.js 22.19+ and `dsh` / `pnpm` on PATH are required:
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.4.1
+dsh plugin --profile web add dsh-riskproof@0.5.0
 ```
 
 The prebuilt npm package needs no local compilation. DSH supplies the official peer
@@ -21,7 +21,7 @@ From a repository checkout:
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.1.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.5.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -130,7 +130,7 @@ For a manual check with your own model configuration:
 
 ```bash
 # Pick a fresh directory for each rebuilt tarball to avoid package-manager cache reuse.
-DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.1.tgz
+DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.5.0.tgz
 DSH_HOME=/tmp/riskproof-web-manual dsh --profile web --no-open --port 19843
 ```
 

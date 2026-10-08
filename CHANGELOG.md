@@ -6,8 +6,10 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- Pin compatible HMR for the CI prerelease hosts and reuse the same host binary
-  for installation, Web boot and tool checks.
+## [0.5.0] — 2026-10-08
+
+- Pin compatible HMR for the CI prerelease hosts, reuse the same host binary
+  for installation and tool checks, and preload HMR in CI and browser acceptance.
 - Add read-only protection checks in the Web overview, `/riskproof doctor` and the
   existing report tool's `health` view, including effective rule relaxation and
   missing credential-output labels without exposing operator paths or domain lists.

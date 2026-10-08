@@ -12,7 +12,7 @@ RiskProof 为 DeepSeek Harness 追踪跨工具数据流、拦截敏感工具输�
 需要 Node.js 22.19+，并已安装 DSH 和 pnpm：
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.4.1
+dsh plugin --profile web add dsh-riskproof@0.5.0
 dsh --profile web --dump-config
 ```
 
@@ -136,7 +136,7 @@ RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.4.1.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.5.0.tgz
 
 # 确认包内 patch 已被组合
 dsh --profile web --dump-config
@@ -144,7 +144,7 @@ dsh --profile web --dump-config
 
 该包声明了 DSH bundle，`plugin add` 自动组合 `riskproof` 行。重启该 profile 后，即可看到常驻安全浮标；点击查看当前对话概览。支持原生命令的界面也可通过 `/` 搜索 RiskProof。
 
-当前版本为 **0.4.1**。完整步骤见 [安装与更新](docs/installation.md)。
+当前版本为 **0.5.0**。完整步骤见 [安装与更新](docs/installation.md)。
 已验证 DSH 0.1.0-rc.7 与 0.1.2-rc.1 的安装、SDK 宿主启动、命令和工具管线；DSH 0.1.2-rc.1 的 Chrome 桌面与窄屏 Web 验收已通过，含真实 Agent 工具管线的来源拦截和只读拦截（本地模拟模型驱动）。详见 [验收记录](docs/v0.3-validation.md) 和 [Web 操作步骤](docs/web-acceptance.zh-CN.md)。
 
 如需调整，可在随后加载的 profile `cordis.patch.yml` 中覆盖 bundle 行：
