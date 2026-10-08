@@ -1,0 +1,8 @@
+# These DSH prereleases can begin watching user patches before the dynamically
+# loaded HMR service is ready. Load it with the initial tree for the boot check.
+# The base profile already provides its timer dependency.
+- insert:
+    - id: riskproof-ci-hmr
+      name: '@deepseek-ai/cordis-plugin-hmr'
+      config:
+        root: []

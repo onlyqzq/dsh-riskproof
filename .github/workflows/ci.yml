@@ -147,7 +147,8 @@ jobs:
           fi
           set +e
           timeout --signal=INT 15s \
-            npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" --profile web "${web_args[@]}" \
+            npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
+            --profile web --patch scripts/fixtures/ci-web-boot.patch.yml "${web_args[@]}" \
             > "$log" 2>&1
           status=$?
           set -e
