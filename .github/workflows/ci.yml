@@ -85,9 +85,11 @@ jobs:
           set -euo pipefail
           npm install --global pnpm@11.19.0
           export DSH_HOME="$RUNNER_TEMP/riskproof-dsh-home"
-          npx --yes @deepseek-ai/dsh@0.1.0-rc.7 \
+          dsh_bin="$(npx --yes --package=@deepseek-ai/dsh@0.1.0-rc.7 \
+            --package=@deepseek-ai/cordis-plugin-hmr@1.0.17 -- which dsh)"
+          "$dsh_bin" \
             plugin --profile riskproof-smoke add /tmp/riskproof-pack/dsh-riskproof-*.tgz
-          npx --yes @deepseek-ai/dsh@0.1.0-rc.7 \
+          "$dsh_bin" \
             --profile riskproof-smoke --dump-config > "$RUNNER_TEMP/riskproof-composed.yml"
           grep -q 'name: dsh-riskproof' "$RUNNER_TEMP/riskproof-composed.yml"
           node --input-type=module -e "
@@ -129,9 +131,16 @@ jobs:
           set -euo pipefail
           npm install --global pnpm@11.19.0
           export DSH_HOME="$RUNNER_TEMP/dsh-${{ matrix.dsh-version }}"
-          npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
+          # These prereleases require HMR's registerConfig API, removed in 1.0.19.
+          # Resolve once and reuse this exact host for installation and execution.
+          export DSH_BIN="$(npx --yes --package="@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
+            --package=@deepseek-ai/cordis-plugin-hmr@1.0.17 -- which dsh)"
+          test -x "$DSH_BIN"
+          test "$("$DSH_BIN" --version)" = "${{ matrix.dsh-version }}"
+          echo "DSH_BIN=$DSH_BIN" >> "$GITHUB_ENV"
+          "$DSH_BIN" \
             plugin --profile web add "$RUNNER_TEMP"/riskproof-pack/dsh-riskproof-*.tgz
-          npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
+          "$DSH_BIN" \
             --profile web --dump-config > "$RUNNER_TEMP/composed.yml"
           grep -q 'name: dsh-riskproof' "$RUNNER_TEMP/composed.yml"
           grep -A3 'name: dsh-riskproof' "$RUNNER_TEMP/composed.yml" | grep -q 'config: {}'
@@ -147,8 +156,7 @@ jobs:
           fi
           set +e
           timeout --signal=INT 15s \
-            npx --yes "@deepseek-ai/dsh@${{ matrix.dsh-version }}" \
-            --profile web --patch scripts/fixtures/ci-web-boot.patch.yml "${web_args[@]}" \
+            "$DSH_BIN" --profile web --patch scripts/fixtures/ci-web-boot.patch.yml "${web_args[@]}" \
             > "$log" 2>&1
           status=$?
           set -e
@@ -169,9 +177,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Resolve npm's installed binary once. Keep npx out of the long-lived
-          # stdio/signal path so the smoke runner controls the DSH process itself.
-          export DSH_BIN="$(npx --yes --package="@deepseek-ai/dsh@${{ matrix.dsh-version }}" -- which dsh)"
+          # Keep npx out of the stdio/signal path; reuse the compatible host above.
           test -x "$DSH_BIN"
           test "$("$DSH_BIN" --version)" = "${{ matrix.dsh-version }}"
           node scripts/check-dsh-install.mjs "$RUNNER_TEMP"/riskproof-pack/dsh-riskproof-*.tgz

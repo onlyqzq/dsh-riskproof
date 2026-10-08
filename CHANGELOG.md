@@ -6,8 +6,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- Preload the host HMR service in the CI Web boot fixture to avoid a startup
-  readiness race in the tested DSH prereleases.
+- Pin compatible HMR for the CI prerelease hosts and reuse the same host binary
+  for installation, Web boot and tool checks.
 - Add read-only protection checks in the Web overview, `/riskproof doctor` and the
   existing report tool's `health` view, including effective rule relaxation and
   missing credential-output labels without exposing operator paths or domain lists.

@@ -93,11 +93,13 @@ DSH_HOME=/tmp/dsh-riskproof-smoke dsh --profile test --dump-config
 
 See `tests/` and `.github/workflows/ci.yml` for the automated equivalents.
 
-The CI Web boot check preloads the host's HMR service through
-`scripts/fixtures/ci-web-boot.patch.yml`. The tested DSH prereleases can otherwise
-start watching user patches before that service is ready. This fixture changes
-only the test host's startup order; the installed RiskProof configuration and
-the command, tool-enforcement and receipt checks still use the candidate tarball.
+CI installs the tested DSH prereleases with `@deepseek-ai/cordis-plugin-hmr@1.0.17`
+and reuses that exact host binary for installation, Web boot and tool checks.
+HMR 1.0.19 removed the `registerConfig` API these prereleases require; allowing
+their dependency range to select it breaks host startup. The Web boot fixture
+also preloads HMR to avoid the host's dynamic service readiness race. These
+adjustments apply to the CI host only and do not change RiskProof's package
+dependencies or policy.
 
 For the current security delta see [v0.4 iteration](v0.4-product-upgrade.md); for browser
 prerequisites and fixture boundaries, see the historical [v0.3 validation](v0.3-validation.md).
