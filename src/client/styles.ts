@@ -407,6 +407,79 @@ export const styles = `
   margin-top: 10px;
 }
 
+.rp-remediation {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 9px 0 0;
+  opacity: .8;
+  overflow-wrap: anywhere;
+}
+
+.rp-health {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rp-line);
+  font-size: 12px;
+}
+
+.rp-health summary {
+  cursor: pointer;
+}
+
+.rp-health-count {
+  display: block;
+  margin: 3px 0 0 15px;
+  font-size: 11px;
+  opacity: .8;
+}
+
+.rp-checks {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.rp-check {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rp-line);
+  overflow-wrap: anywhere;
+}
+
+.rp-check-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-check-heading strong {
+  font-weight: 550;
+}
+
+.rp-check-status {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--rp-green);
+}
+
+.rp-check[data-status=attention] .rp-check-status {
+  color: var(--rp-amber);
+}
+
+.rp-check[data-status=info] .rp-check-status {
+  color: inherit;
+}
+
+.rp-check p,.rp-health-note {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.rp-health-note {
+  opacity: .7;
+}
+
 .rp-details {
   font-size: 11px;
   margin-top: 10px;

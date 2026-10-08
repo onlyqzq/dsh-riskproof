@@ -7,6 +7,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [安装与首次使用](installation.md) | 本地候选包安装、启动、命令和任务范围 |
+| [防护检查 / Protection checks](protection-checks.md) | doctor、有效规则与配置缺口、风险处理建议 |
 | [配置参考](configuration.md) | 防护模式、策略、输出控制、可信降密和记录上限 |
 | [本地演示](../demo/README.md) | 无需模型的攻击链演示 |
 | [Web 验收步骤](web-acceptance.zh-CN.md) | 浮标、风险概览、会话切换与移动端验证 |
@@ -36,6 +37,8 @@
 
 这些文档记录对应版本的设计背景和验证结果；当前配置与操作方式以使用指南为准。
 
+- [dsh-vault 调研与防护检查迭代](vault-benchmark.zh-CN.md)
+- [dsh-auto-review 调研与本轮优化](auto-review-benchmark.zh-CN.md)
 - [v0.4 输出控制与可信降密](v0.4-product-upgrade.md)
 - [v0.3 产品迭代与榜单调研](v0.3-product-upgrade.md) · [验收记录](v0.3-validation.md)
 - [v0.2 安全插件对比与迭代依据](v0.2-security-plugin-benchmark.md)

@@ -4,12 +4,14 @@ import { defineTool } from "@deepseek-ai/dsh-tools";
 import type { TaskMode } from "../core/types.js";
 import type { RiskProofRuntime } from "./runtime.js";
 import { renderReport } from "../experience/report.js";
+import { renderHealthReport } from "../experience/health.js";
 import { runRehearsal } from "../experience/rehearsal.js";
 
 const HELP = [
   "🛡 RiskProof · 安全中心 / Security center",
   "/riskproof — 当前会话安全账单 / session receipt",
   "/riskproof trace — 最近 10 次调用的来源、标签与执行回执 / provenance timeline",
+  "/riskproof doctor — 只读配置检查与修复建议 / protection checks",
   "/riskproof demo — 无副作用防护演练 / isolated rehearsal",
   "/riskproof task read-only — 只读：阻止写入、外发、shell 和未知工具",
   "/riskproof task local-only — 本地：阻止网络工具、shell 和未知工具",
@@ -22,15 +24,15 @@ const HELP = [
 export function installExperience(ctx: Context, runtime: RiskProofRuntime): void {
   ctx.tools.register(defineTool({
     name: "riskproof_report",
-    description: "Show RiskProof security status, provenance timeline, execution receipts, or a harmless synthetic demo for this session. Read-only; cannot change policy or task scope. 安全报告、溯源与防护演练。",
+    description: "Show RiskProof security status, provenance timeline, execution receipts, read-only configuration checks, or a harmless synthetic demo for this session. Read-only; cannot change policy or task scope. 安全报告、溯源与防护演练。",
     parameters: {
-      view: { type: "string", enum: ["status", "trace", "demo"], description: "Report view; defaults to status" },
+      view: { type: "string", enum: ["status", "trace", "demo", "health"], description: "Report view; defaults to status" },
     },
     output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: value }] },
     presentCall: () => ({ card: "generic", title: "🛡 RiskProof · 安全报告 / Security report", kind: "read" }),
     async execute(args, exec) {
       const snapshot = runtime.report(exec.agent?.id);
-      return args.view === "demo" ? runRehearsal(snapshot.language)
+      return args.view === "health" ? renderHealthReport(snapshot) : args.view === "demo" ? runRehearsal(snapshot.language)
         : renderReport(snapshot, args.view === "trace" ? "trace" : "status");
     },
   }));
@@ -41,12 +43,13 @@ export function installExperience(ctx: Context, runtime: RiskProofRuntime): void
     inner.commands.register({
       name: "riskproof",
       description: "🛡 安全账单、数据溯源、防护演练 / Security receipt & provenance",
-      input: { hint: "trace | demo | task read-only | task local-only | task standard | help" },
+      input: { hint: "trace | doctor | demo | task read-only | task local-only | task standard | help" },
       recordInput: false,
       handler: ({ agent, rawInput }) => {
         const input = rawInput.trim();
         if (input === "help") return { kind: "success", text: HELP };
         const snapshot = runtime.report(agent.id);
+        if (input === "doctor") return { kind: "success", text: renderHealthReport(snapshot) };
         if (input === "demo") return { kind: "success", text: runRehearsal(snapshot.language) };
         if (input.startsWith("task ")) {
           const mode = input.slice(5).trim();

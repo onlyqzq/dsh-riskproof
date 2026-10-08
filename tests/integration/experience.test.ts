@@ -35,6 +35,10 @@ describe("real DSH commands and report tool", () => {
     expect(await command("")).toContain("还没有安全记录");
     expect(await command("demo")).not.toContain("✗");
     expect(await command("help")).toContain("riskproof_report");
+    expect(await command("doctor")).toContain("0 项配置需关注");
+    const health = await call("riskproof_report", { view: "health" });
+    expect(health.isError).toBe(false);
+    expect(String(health.value)).toContain("防护检查");
     const result = await call("riskproof_report", { view: "trace" });
     expect(result.isError).toBe(false);
     expect(String(result.value)).toContain("已检查 0");
@@ -42,6 +46,7 @@ describe("real DSH commands and report tool", () => {
     await fiber.update({ experience: { language: "en" } });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     expect(await command("")).toContain("Session security receipt");
+    expect(await command("doctor")).toContain("Protection checks");
     expect(root.commands.list(agent).filter((c) => c.name === "riskproof")).toHaveLength(1);
     await fiber.dispose();
     expect(root.commands.find(agent, "riskproof")).toBeUndefined();
@@ -63,6 +68,11 @@ describe("real DSH commands and report tool", () => {
     expect(report.isError).toBe(false);
     expect(String(report.value)).toContain("RiskProof 已拦截 1");
     expect(await command("trace")).toContain("deny → blocked");
+    expect(await command("doctor")).toContain("防护检查");
+    expect((await call("riskproof_report", { view: "health" })).isError).toBe(false);
+    const afterHealth = await command("status");
+    expect(afterHealth).toContain("已检查 1");
+    expect(afterHealth).toContain("read-only");
     expect((await root.commands.execute(agent, "/riskproof task invalid", [], new AbortController().signal))?.result.kind).toBe("error");
     expect((await root.commands.execute(agent, "/riskproof unknown", [], new AbortController().signal))?.result.kind).toBe("error");
     await command("task local-only");

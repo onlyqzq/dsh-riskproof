@@ -207,3 +207,18 @@ npm view dsh-riskproof dist-tags --json
 | 发布后发现问题 | 修复后发布新的补丁版本；保留历史标签和发布记录。 |
 
 工作流会比较已发布版本和候选 tarball 的 `dist.integrity`，完全一致时跳过重复发布。这个行为用于恢复失败流程，不意味着可以修改同一版本的内容。
+
+
+## 五、发布后的展示与增长复核
+
+代码通过检查和发布后，还要确认用户能看到本次改进：
+
+1. 在 npm 和 GitHub 首页核对中英文安装步骤、版本和兼容表；以发布后的实际页面为准。
+2. 在 [已有插件目录](https://awesome-dsh-plugin.com/p/onlyqzq/dsh-riskproof/) 核对描述和 README；
+   如需提交收录更新，使用 [调研文档中的中英文文案](auto-review-benchmark.zh-CN.md#可用于收录更新的文案)，按目录实际维护规则操作。
+3. 在候选包上验证 `/riskproof doctor` 与 Web“防护检查”：诊断不改变策略、不增加记录；
+   观察模式、缺失凭据标签和显式放宽规则提示准确。详见 [检查指南](protection-checks.md)。
+4. 在候选包上分别验证 `experience.language: zh-CN` / `en`：浮标、风险标题、输出拦截、断线提示和窄屏可读性。
+5. 记录公开指标的采集时间与 npm 窗口，在第 7／30 天复核；统计方法和局限见 [增长验证计划](auto-review-benchmark.zh-CN.md#发布后-30-天如何判断是否有效)。
+
+下载次数不是独立安装人数；不要用未经核实的增长归因或安全承诺更新宣传。

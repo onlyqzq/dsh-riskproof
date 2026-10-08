@@ -112,6 +112,72 @@ describe("live beacon safety and lifecycle", () => {
     expect($('.rp-scope').textContent).toBe('任务范围：本地任务 · 观察模式');
     ui.dispose();
   });
+  it("uses the configured language for the full overview and retains it when offline", async () => {
+    const state = base(); state.language = "en";
+    const ui = mount(state); await settle();
+    expect($('.rp-root').lang).toBe('en');
+    expect($('.rp-title').textContent).toBe('Conversation security overview');
+    expect($('.rp-brand small').textContent).toBe('Waiting for tool calls');
+    expect($('.rp-beacon').getAttribute('aria-label')).toContain('View security overview');
+    expect($('.rp-empty strong').textContent).toBe('Waiting for the first tool record');
+    expect($('.rp-legend').textContent).toContain('Needs attention');
+    expect($('.rp-activity').getAttribute('aria-label')).toContain('real tool checks');
+    state.taskMode = 'read-only'; state.mode = 'observe';
+    await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-scope').textContent).toBe('Task scope: Read-only task · Observe mode');
+    expect($('.rp-brand small').textContent).toContain('no active blocking');
+    state.proofEnabled = false; state.partial = true;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-empty strong').textContent).toBe('Proof recording is disabled');
+    expect($('.rp-notice').textContent).toContain('Some checks are disabled');
+    ui.call.mockRejectedValue(new Error('offline'));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-brand small').textContent).toBe('Disconnected; awaiting recovery');
+    expect($('.rp-retry').textContent).toBe('Reconnect');
+    expect($('.rp-data').hidden).toBe(true);
+    ui.call.mockResolvedValue({ ok: true, value: { ...state, language: 'zh-CN' } });
+    $('.rp-retry').click(); await settle();
+    expect($('.rp-title').textContent).toBe('当前对话安全概览');
+    expect($('.rp-root').lang).toBe('zh-CN');
+    ui.dispose();
+  });
+  it("renders protection checks on demand, preserves expansion on refresh and clears disconnected data", async () => {
+    const state = base(); const ui = mount(state); await settle();
+    expect($('.rp-health').hidden).toBe(false);
+    expect($('.rp-health').hasAttribute('open')).toBe(false);
+    expect($('.rp-checks').children).toHaveLength(9);
+    $('.rp-health').setAttribute('open', '');
+    state.health!.attention = 1;
+    state.health!.checks[0] = { id: 'test', status: 'attention', title: '<img src=x>', detail: 'configuration gap', action: 'mode: enforce' };
+    await vi.advanceTimersByTimeAsync(2000);
+    expect($('.rp-root').dataset.state).toBe('attention');
+    expect($('.rp-brand small').textContent).toContain('1 项配置需关注');
+    expect($('.rp-health').hasAttribute('open')).toBe(true);
+    expect($('.rp-checks').textContent).toContain('<img src=x>');
+    expect(document.querySelector('img')).toBeNull();
+    state.risks = [{ id: 'p', tool: 'bash', sources: [], rule: '', title: 'risk', outcome: '', kind: 'attention', remediation: '<script>bad()</script>' }];
+    await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-remediation').textContent).toBe('<script>bad()</script>');
+    expect(document.querySelector('script')).toBeNull();
+    ui.call.mockRejectedValue(new Error('offline')); await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-data').hidden).toBe(true);
+    ui.dispose();
+  });
+  it("does not pretend older servers provide configuration checks", async () => {
+    const state = base(); delete state.health;
+    const ui = mount(state); await settle();
+    expect($('.rp-health').hidden).toBe(true);
+    ui.dispose();
+  });
+  it("falls back to the document language for older snapshots without a language field", async () => {
+    document.documentElement.lang = 'en-US';
+    try {
+      const state = base(); delete state.language;
+      const ui = mount(state); await settle();
+      expect($('.rp-title').textContent).toBe('Conversation security overview');
+      ui.dispose();
+    } finally { document.documentElement.lang = ''; }
+  });
   it("pauses hidden-tab reads, resumes when visible, and rejects mismatched snapshots", async () => {
     const ui = mount(); await settle(); const count = ui.call.mock.calls.length;
     Object.defineProperty(document, 'hidden', { value: true, configurable: true }); await vi.advanceTimersByTimeAsync(3000);

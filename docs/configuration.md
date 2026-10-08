@@ -193,6 +193,12 @@ Configuration fails at plugin load when a value is out of range or inconsistent:
       mode: standard        # standard | read-only | local-only
 ```
 
+`experience.language` also controls the Web beacon, overview, accessibility labels and risk
+receipts. After changing the profile patch, restart DSH. Before the first status response,
+the client uses the document language (English for `en*`, otherwise Chinese); older snapshots
+without a language field retain that fallback. The last known language stays visible while
+reconnecting. Language selection changes presentation only.
+
 `/riskproof task <mode>` changes only the calling live agent's task contract. New sessions,
 subsessions and plugin reloads use the configured default. It cannot disable base rules.
 No agent tool can mutate this setting. In `observe` mode all RiskProof findings, including
@@ -217,3 +223,13 @@ Execution receipts may include an `output` object containing only the action (`a
 `block`, or `would_block`), taint labels and labels removed by trusted declassification.
 An enforced output block settles with `outcome: output_blocked`. No result body is stored
 in memory proofs, JSONL receipt events, reports or dashboard payloads.
+
+
+## Diagnose the loaded configuration
+
+`/riskproof doctor` and the Web overview's **Protection checks** inspect the current
+resolved settings. `riskproof_report` supports `view: health` for the same read-only
+findings. Unlike `/riskproof demo`, this reports the actual loaded configuration.
+It compares effective rule overrides against balanced defaults, checks required credential
+output labels, and explains disabled features. It never changes policy or tests real tools.
+See [the checks guide](protection-checks.md) for details and limitations.

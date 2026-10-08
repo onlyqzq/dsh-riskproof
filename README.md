@@ -1,10 +1,44 @@
 # RiskProof
 
-**Provenance-aware execution security for DeepSeek Harness.**
+**Stop sensitive data from leaving through AI tools, and see where it came from.**
 
-Track where tool inputs came from. Detect risky cross-tool data flows. Stop sensitive side effects before execution.
+RiskProof tracks cross-tool data flows and blocks sensitive tool output in DeepSeek Harness.
+A persistent security beacon shows redacted execution receipts. Deterministic rules need no extra LLM calls.
 
 [English](README.md) · [简体中文](README.zh-CN.md)
+
+## Quick Start
+
+Requires Node.js 22.19+, with DSH and pnpm installed:
+
+```bash
+dsh plugin --profile web add dsh-riskproof@0.4.1
+dsh --profile web --dump-config
+```
+
+Confirm the output includes `name: dsh-riskproof`, restart the Web profile, and click
+its security beacon. Then enter this directly in the conversation composer:
+
+```text
+/riskproof demo
+```
+
+Four isolated rehearsals show web content influencing a command, customer data transfer,
+a tool schema change and a read-only restriction. They use synthetic inputs, read no private files, run no shell commands,
+send no email, and do not enter live protection counts. RiskProof's rules and direct slash
+commands make no extra model calls; ordinary DSH model usage keeps its normal cost.
+
+See [installation and troubleshooting](docs/installation.md) for the complete steps.
+
+| Compatibility | Verified scope |
+| --- | --- |
+| Node.js | 22.19+; see the [CI matrix](.github/workflows/ci.yml) |
+| DSH | Install/tool pipeline: 0.1.0-rc.7 and 0.1.2-rc.1; Web acceptance: 0.1.2-rc.1 |
+| Model | Deterministic rules need no reviewer model or additional API key |
+| Language | Beacon, overview and reports: `experience.language: en` or `zh-CN` (default) |
+
+Newer DSH versions require separate verification. See [validation evidence](docs/v0.3-validation.md)
+for the tested versions above.
 
 ## Start here
 
@@ -46,6 +80,7 @@ Commands remain secondary entries; long output is collapsed by default:
 | Need | DSH command |
 | --- | --- |
 | Open the compact overview | `/riskproof` |
+| Check protection settings and next steps | `/riskproof doctor` |
 | Read the text provenance report | `/riskproof trace` |
 | Restrict to inspection | `/riskproof task read-only` |
 | Keep tool capabilities local | `/riskproof task local-only` |
@@ -54,8 +89,17 @@ Commands remain secondary entries; long output is collapsed by default:
 
 The model can also call the read-only `riskproof_report` tool. The beacon reads redacted
 statistics through DSH's authenticated connection about once per second while the page is
-visible. It makes no model requests and creates no tool records. The current beacon uses
-Chinese labels; command/tool text supports Chinese and English (`experience.language: en`).
+visible. It makes no model requests and creates no tool records. The beacon, overview and command/tool text follow
+`experience.language`: `zh-CN` (default) or `en`.
+
+## See configuration gaps and what to do next
+
+Expand **Protection checks** in the beacon overview, or run `/riskproof doctor` to inspect
+execution mode, evidence recording, provenance, label propagation, chain detection,
+credential output protection and effective rule posture. Explicit overrides that relax a
+strict preset remain visible. Recent risk cards also explain the next step.
+These are read-only configuration checks, with no test tool dispatch, credential reads or
+extra activity counts. See the [protection checks guide](docs/protection-checks.md).
 
 ## What RiskProof answers
 
@@ -79,7 +123,7 @@ RiskProof → DENY   (evidence-backed, before the side effect)
 
 ## Why RiskProof
 
-| Permission rules          | RiskProof                              |
+| Tool-name allowlists      | RiskProof                              |
 | ------------------------- | -------------------------------------- |
 | Is this tool allowed?     | Where did this data come from?         |
 | Single call               | Cross-tool flow                        |
@@ -89,13 +133,7 @@ RiskProof → DENY   (evidence-backed, before the side effect)
 
 RiskProof is a layer over the DSH Tool Runtime, not another Agent Runtime. It never re-implements tool dispatch, approval, or lifecycle — it observes and decides.
 
-## Quick Start
-
-Requires Node.js 22.19+, with DSH and pnpm installed. Install or update:
-
-```bash
-dsh plugin --profile web add dsh-riskproof@0.4.1
-```
+## Local build and configuration
 
 Alternatively, build a local package from the repository root:
 
@@ -123,6 +161,8 @@ To tune it, override the bundled row from the profile's later `cordis.patch.yml`
 ```yaml
 - id: riskproof
   config:
+    experience:
+      language: en           # zh-CN (default) | en; beacon and reports
     mode: enforce            # enforce | observe
     policy:
       preset: balanced         # permissive | balanced | strict
@@ -304,9 +344,23 @@ See the [documentation index](docs/README.md) for guides, security design and ve
 - Richer structured/semantic DLP adapters
 - Cross-process provenance with explicit trust boundaries
 
+## Choosing alongside auto-review
+
+| Need | Direction |
+| --- | --- |
+| A second model evaluates whether an approval request should proceed | [dsh-auto-review](https://github.com/PerryLink/dsh-auto-review) |
+| Track cross-tool data flows, block sensitive output and inspect execution receipts | RiskProof |
+
+These use different host hooks. Joint use still needs plugin-order and host-version testing;
+combined acceptance has not been verified. RiskProof covers observable, matchable flows and
+configured rules; see the [security model](docs/security-model.md).
+
 ## Contributing
 
 Issues, rule submissions, tool-capability mappings, and false-positive reports are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+If RiskProof helps you, a [GitHub star](https://github.com/onlyqzq/dsh-riskproof) helps others discover it.
+Installation feedback, redacted false-positive reports and tool mappings help improve it too.
 
 ## Security reporting
 

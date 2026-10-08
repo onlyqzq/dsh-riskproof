@@ -1,10 +1,42 @@
 # RiskProof
 
-**让你看见 AI 读了什么来源、拦下了什么风险、操作最终是否执行。**
+**在 AI 工具把敏感数据发出去之前拦截，并看清来源与执行结果。**
 
-DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次工具调用留下可解释的执行证据。
+RiskProof 为 DeepSeek Harness 追踪跨工具数据流、拦截敏感工具输出，
+通过常驻安全浮标展示脱敏回执；确定性规则决策不需要额外 LLM 调用。
 
 [English](README.md) · [简体中文](README.zh-CN.md)
+
+## 快速开始
+
+需要 Node.js 22.19+，并已安装 DSH 和 pnpm：
+
+```bash
+dsh plugin --profile web add dsh-riskproof@0.4.1
+dsh --profile web --dump-config
+```
+
+确认输出包含 `name: dsh-riskproof`，重启 Web profile，再点击对话旁的安全浮标。
+随后在对话输入框直接输入：
+
+```text
+/riskproof demo
+```
+
+四项隔离演练展示网页内容影响命令、客户数据外发、工具 schema 变化和只读限制，使用合成数据，
+不读私密文件、不执行 shell、不发送邮件，也不计入真实防护统计。RiskProof 的规则引擎和
+原生命令不调用额外模型。日常任务中仍使用 DSH 原有的模型配置与计费。
+
+完整步骤与排障见 [安装指南](docs/installation.md)。
+
+| 兼容性 | 已验证范围 |
+| --- | --- |
+| Node.js | 22.19+；具体 CI 矩阵见 [工作流](.github/workflows/ci.yml) |
+| DSH | 安装与工具管线：0.1.0-rc.7、0.1.2-rc.1；Web 验收：0.1.2-rc.1 |
+| 模型 | 确定性规则引擎不需要审查模型或额外 API key |
+| 语言 | 浮标、概览与报告支持中文／英文：`experience.language: zh-CN` 或 `en` |
+
+较新 DSH 版本需要另做兼容性验证。以上版本对应的证据见 [验收记录](docs/v0.3-validation.md)。
 
 ## 从这里开始
 
@@ -44,6 +76,7 @@ DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次�
 | 需要做什么 | DSH 命令 |
 | --- | --- |
 | 打开安全概览 | `/riskproof` |
+| 检查配置缺口与处理建议 | `/riskproof doctor` |
 | 查看文字来源记录 | `/riskproof trace` |
 | 限制为只读任务 | `/riskproof task read-only` |
 | 限制为本地任务 | `/riskproof task local-only` |
@@ -52,6 +85,15 @@ DSH 原生安全账单与数据溯源。敏感数据外发前拦截，给每次�
 
 也可让模型调用 `riskproof_report` 查看原生工具结果卡。浮标通过 DSH 自带的认证连接读取
 脱敏统计，页面可见时约每秒更新，不调用模型、不增加工具记录、不消耗模型 token。
+浮标与报告统一遵循 `experience.language`（默认 `zh-CN`，可设为 `en`）。
+
+## 看清配置缺口，知道下一步怎么做
+
+点击浮标后展开“防护检查”，或运行 `/riskproof doctor`：查看当前执行模式、证据记录、
+来源匹配、敏感标签传播、工具链检测、凭据输出保护和有效规则强度。
+即使预设为 strict，显式覆盖放宽了规则也会提示；风险卡片同时显示处理建议。
+检查只读、不执行测试工具、不读取真实凭据，也不增加调用计数。
+完整说明见 [防护检查指南](docs/protection-checks.md)。
 
 ## RiskProof 回答的问题
 
@@ -75,7 +117,7 @@ RiskProof → DENY   （有证据、在副作用发生之前）
 
 ## 为什么是 RiskProof
 
-| 权限规则                  | RiskProof                        |
+| 工具名称白名单                  | RiskProof                        |
 | ------------------------- | -------------------------------- |
 | 这个工具允许吗？          | 这些数据从哪里来？               |
 | 单次调用                  | 跨工具数据流                     |
@@ -85,13 +127,7 @@ RiskProof → DENY   （有证据、在副作用发生之前）
 
 RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 Agent Runtime。它从不重复实现工具分发、审批或生命周期——它只观察并裁决。
 
-## 快速开始
-
-需要 Node.js 22.19+，并已安装 DSH 和 pnpm。安装或更新：
-
-```bash
-dsh plugin --profile web add dsh-riskproof@0.4.1
-```
+## 本地构建与配置
 
 也可在本仓库根目录构建本地安装包：
 
@@ -116,6 +152,8 @@ dsh --profile web --dump-config
 ```yaml
 - id: riskproof
   config:
+    experience:
+      language: zh-CN        # zh-CN | en（同时控制浮标和报告）
     mode: enforce            # enforce | observe
     policy:
       preset: balanced         # permissive | balanced | strict
@@ -297,9 +335,22 @@ RiskProof **不能替代**：
 - 更丰富的结构化／语义 DLP 适配
 - 带显式信任边界的跨进程来源追踪
 
+## 与自动审批插件如何选择
+
+| 需求 | 更合适的方向 |
+| --- | --- |
+| 让第二个模型根据上下文判断一次审批能否放行 | [dsh-auto-review](https://github.com/PerryLink/dsh-auto-review) |
+| 追踪数据跨工具流动、阻止敏感输出、查看执行回执 | RiskProof |
+
+两者工作在不同钩子上；联合使用仍需验证插件顺序与 DSH 版本，当前没有宣称完成组合验收。
+RiskProof 仅对可观测、可匹配的数据流和已配置规则作判断，完整边界见 [安全模型](docs/security-model.md)。
+
 ## 贡献
 
 欢迎提交 Issue、规则、工具能力映射和误报报告。见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+如果 RiskProof 对你有帮助，欢迎 [Star 项目](https://github.com/onlyqzq/dsh-riskproof)；
+安装反馈、脱敏误报案例和工具分类贡献同样有助于改进。
 
 ## 安全报告
 

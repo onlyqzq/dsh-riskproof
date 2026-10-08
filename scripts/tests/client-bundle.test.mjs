@@ -21,6 +21,8 @@ test("browser bundle loads, renders safe metadata, switches sessions and dispose
 
   const snapshot = {
     sessionId: "first",
+    language: "en",
+    health: { attention: 1, checks: [{ id: 'credential-output', status: 'attention', title: 'Credential output protection', detail: 'API_KEY is not blocked', action: 'Review output.blockedTaints' }], note: 'Read-only configuration checks' },
     mode: "enforce",
     taskMode: "standard",
     proofEnabled: true,
@@ -31,6 +33,7 @@ test("browser bundle loads, renders safe metadata, switches sessions and dispose
     risks: [{
       id: "proof", tool: "send_email", sources: ["read_file"],
       title: "<img src=x onerror=alert(1)>", rule: "credential_external_action",
+      remediation: "Verify the command source",
       outcome: "已阻止执行", kind: "blocked",
     }],
   };
@@ -60,8 +63,15 @@ test("browser bundle loads, renders safe metadata, switches sessions and dispose
   const find = (selector) => window.document.querySelector(selector);
   await settle();
   assert.equal(find(".rp-root").dataset.state, "blocked");
+  assert.equal(find(".rp-root").lang, "en");
+  assert.equal(find(".rp-title").textContent, "Conversation security overview");
+  assert.match(find(".rp-beacon").getAttribute("aria-label"), /Blocked 1 risky calls/);
   assert.equal(find(".rp-panel").hidden, true);
   assert.equal(find(".rp-count-blocked").textContent, "1");
+  assert.equal(find(".rp-health").hidden, false);
+  assert.equal(find(".rp-health").hasAttribute("open"), false);
+  assert.match(find(".rp-checks").textContent, /API_KEY is not blocked/);
+  assert.equal(find(".rp-remediation").textContent, "Verify the command source");
   assert.equal(find(".rp-flow").textContent, "read_file→send_email");
   assert.equal(find("img"), null);
   assert.match(find(".rp-risk-title").textContent, /<img/);

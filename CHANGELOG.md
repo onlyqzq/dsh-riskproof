@@ -6,6 +6,17 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Add read-only protection checks in the Web overview, `/riskproof doctor` and the
+  existing report tool's `health` view, including effective rule relaxation and
+  missing credential-output labels without exposing operator paths or domain lists.
+- Show fixed localized remediation in recent risk cards; document dsh-vault
+  product lessons and the conservative credential-output interoperability boundary.
+
+- Make the Web beacon, overview, accessibility labels and risk receipts follow
+  `experience.language`, preserving the last known language through reconnection.
+- Lead both READMEs with installation, safe rehearsals and verified compatibility;
+  document auto-review positioning, uninstall/troubleshooting and growth measurement.
+
 - Separate deterministic policy rules, DSH capability/config/output adapters, and
   browser lifecycle/rendering modules while preserving public exports and rule order.
 - Define the report snapshot independently of the runtime implementation and group

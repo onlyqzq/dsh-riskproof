@@ -34,6 +34,7 @@ In the DSH conversation composer, enter:
 ```text
 /riskproof
 /riskproof demo
+/riskproof doctor
 /riskproof trace
 ```
 
@@ -56,6 +57,35 @@ dsh plugin --profile web add github:onlyqzq/dsh-riskproof --allow-build dsh-risk
 Git source runs `prepare`; inspect and approve the build as prompted by DSH/pnpm.
 Git installs use the remote source; use an exact npm version for a reproducible release install.
 For a local checkout, build first, then install the generated tarball as above.
+
+## Check the loaded protection settings
+
+Run `/riskproof doctor`, or expand **Protection checks** in the beacon overview.
+For headless hosts, call `riskproof_report` with `view: health`. The findings identify
+disabled checks, missing credential-output labels and effective rules more permissive
+than balanced defaults. No private files or credentials are read, and no test tools run.
+See [protection checks](protection-checks.md) for meanings and recovery steps.
+
+## Remove the plugin
+
+```bash
+dsh plugin --profile web remove dsh-riskproof
+```
+
+Restart that profile. If you added a manual `riskproof` override in its patch, remove that
+entry too. Operator-configured JSONL proof files remain under your control.
+
+## If the beacon does not appear
+
+1. Run `dsh --profile web --dump-config` and check for one `name: dsh-riskproof` row.
+2. Restart the same profile you installed into; select a conversation in Web.
+3. If the beacon reports a disconnect, click **Reconnect**. Headless/older hosts without
+   the authenticated connection can still use `/riskproof` or `riskproof_report`.
+4. For an English overview and receipts, set `experience.language: en` in the profile
+   patch and restart; see [configuration](configuration.md).
+
+Include DSH, Node and plugin versions plus the redacted error in an
+[installation report](https://github.com/onlyqzq/dsh-riskproof/issues/new?template=bug_report.md).
 
 ## Task contracts
 
@@ -88,7 +118,9 @@ Evidence is written to `artifacts/dsh-install-check*.json` and `.log`.
 direct executable, not a shell wrapper around `npx`.
 
 For automated browser acceptance, install Playwright in your development environment and
-its Chromium browser, then run `npm run check:web`. If Playwright is installed elsewhere,
+its Chromium browser, then run `npm run check:web`. Repeat with
+`RISKPROOF_WEB_LANGUAGE=en npm run check:web` for English; its evidence is written
+to `artifacts/web/en/`. If Playwright is installed elsewhere,
 set `PLAYWRIGHT_MODULE` to its absolute `index.mjs` path; `CHROME_PATH` optionally selects
 an installed Chrome executable. The script creates a fresh profile, starts DSH on a random
 localhost port, and uses a local deterministic model fixture to exercise the actual Agent

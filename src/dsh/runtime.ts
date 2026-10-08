@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { toolFingerprint } from "../core/identity.js";
 import type { ExecutionReceipt, OutputControlReceipt, TaskMode } from "../core/types.js";
 
-import { resolveRiskProofConfig, type RiskProofConfig } from "../config.js";
+import { POLICY_PRESETS, resolveRiskProofConfig, type RiskProofConfig } from "../config.js";
 import type {
   SecurityDecision,
   SecurityProof,
@@ -250,6 +250,12 @@ export class RiskProofRuntime {
       toolchainEnabled: this.config.toolchain.enabled,
       outputEnabled: this.config.output.enabled,
       persistent: !!this.config.proof.file,
+      outputBlockedTaints: [...this.config.output.blockedTaints],
+      relaxedPolicyRules: Object.entries(POLICY_PRESETS.balanced).filter(([field, baseline]) => {
+        const rank = { allow: 0, ask: 1, deny: 2 };
+        const effective = this.config.policy[field] as "allow" | "ask" | "deny";
+        return rank[effective] < rank[baseline];
+      }).map(([field]) => field),
       limit: this.config.proof.maxRecords,
       proofs: this.proofStore.list().filter((proof) => session !== undefined && proof.scopeId === session.scopeId),
     };

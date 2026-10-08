@@ -41,6 +41,31 @@ describe("live dashboard privacy and truthful counts", () => {
     const read = makeExec("web_fetch", {}); await enforced.preExecute(read, denyNext);
     expect(dashboard(enforced.report("session-1"), "session-1").risks[0].outcome).toContain("其他规则");
   });
+  it("localizes risk receipts without changing security decisions, counts or provenance", async () => {
+    const runtime = new RiskProofRuntime(makeMockCtx(defs));
+    runtime.setTaskMode("session-1", "read-only");
+    const exec = makeExec("file_write", { path: "private-customer-file.txt" });
+    await runtime.preExecute(exec, allowNext); runtime.onResult(exec, errorResult("denied"));
+    const snapshot = runtime.report("session-1");
+    const cn = dashboard(snapshot, "session-1");
+    const en = dashboard({ ...snapshot, language: "en" }, "session-1");
+    expect(en.language).toBe("en");
+    expect(en.risks[0].title).toBe("Action exceeds task scope");
+    expect(en.risks[0].outcome).toBe("Execution prevented");
+    expect(en.risks[0].remediation).toContain("Only the operator");
+    expect(en.health?.attention).toBe(0);
+    expect(en.counts).toEqual(cn.counts);
+    expect(en.activity).toEqual(cn.activity);
+    expect(en.risks[0].sources).toEqual(cn.risks[0].sources);
+    expect(JSON.stringify(en)).not.toContain("private-customer-file");
+    snapshot.proofs[0].receipt!.output = { action: "block", taints: ["SECRET"], declassifiedTaints: [] };
+    const output = dashboard({ ...snapshot, language: "en" }, "session-1");
+    expect(output.risks[0].title).toBe("Sensitive tool output blocked");
+    expect(output.risks[0].outcome).toBe("Tool output blocked");
+    const observe = dashboard({ ...snapshot, mode: "observe", language: "en", proofs: snapshot.proofs.map(p => ({ ...p, mode: "observe" })) }, "session-1");
+    expect(observe.counts.blocked).toBe(0);
+    expect(observe.risks[0].outcome).toBe("Observe only; no RiskProof block");
+  });
   it("bounds activity and risks and reflects disabled recording", async () => {
     const runtime = new RiskProofRuntime(makeMockCtx(defs));
     for (let i = 0; i < 30; i++) {
