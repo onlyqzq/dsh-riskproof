@@ -13,7 +13,7 @@ export function installDashboard(ctx: Context, runtime: RiskProofRuntime): void 
   ctx.inject(["connection"], inner => {
     const connection = (inner as unknown as { connection: RpcHost }).connection;
     if (!connection.rpc?.handle) return; // Older/headless hosts retain commands and report tool.
-    inner.effect(() => connection.rpc!.handle("/riskproof", async (endpoint, payload) => {
+    inner.effect(() => connection.rpc!.handle("/api/riskproof", async (endpoint, payload) => {
       const sessionId = typeof payload === "object" && payload !== null && "sessionId" in payload
         ? payload.sessionId : undefined;
       if (endpoint !== "status" || !(sessionId === null || typeof sessionId === "string" && sessionId.length > 0 && sessionId.length <= 256)) {

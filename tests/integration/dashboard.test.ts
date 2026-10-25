@@ -16,7 +16,7 @@ describe("host dashboard RPC lifecycle", () => {
     await runtime.preExecute(exec, allowNext); runtime.onResult(exec, successResult("private body"));
     const fiber = ctx.plugin((inner: Context) => installDashboard(inner, runtime)); await fiber;
     await new Promise(resolve => setTimeout(resolve, 0));
-    expect(handle).toHaveBeenCalledOnce(); expect(handle.mock.calls[0][0]).toBe('/riskproof');
+    expect(handle).toHaveBeenCalledOnce(); expect(handle.mock.calls[0][0]).toBe('/api/riskproof');
     for (const payload of [null, {}, { sessionId: 3 }, { sessionId: '' }, { sessionId: 'x'.repeat(257) }]) {
       expect(await handler('status', payload)).toMatchObject({ ok: false });
     }

@@ -46,7 +46,7 @@ export function apply(ctx: ClientContext): void {
     if (!connected) render();
     const timeout = setTimeout(() => request.abort(), 4000);
     try {
-      const response = await ctx.connection.rpc.call("/riskproof", "status", { sessionId: requested }, request.signal);
+      const response = await ctx.connection.rpc.call("/api/riskproof", "status", { sessionId: requested }, request.signal);
       if (disposed || generation !== version) return;
       if (!response.ok || !response.value || typeof response.value !== "object") {
         throw new Error("unavailable");
