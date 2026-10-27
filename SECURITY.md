@@ -4,11 +4,15 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
+| 0.7.x   | :white_check_mark: |
+| < 0.7   | Upgrade to the latest release |
+
+Fixes target the latest published release. DSH host compatibility is listed in
+[the installation guide](docs/installation.md) and the README compatibility table.
 
 ## What RiskProof is
 
-RiskProof is a **plugin inside the DeepSeek Harness Tool Runtime**. It observes tool executions and makes deterministic, evidence-backed allow / ask / deny decisions before a side effect runs. It does not execute tools itself, does not hold secrets, and does not replace the DSH sandbox or approval service.
+RiskProof is a **plugin inside the DeepSeek Harness Tool Runtime**. It makes deterministic, evidence-backed allow / ask / deny decisions before execution and can block sensitive results before they reach model context. It does not execute tools itself, does not hold secrets, and does not replace the DSH sandbox or approval service.
 
 ## Trusted computing base
 
@@ -26,6 +30,7 @@ RiskProof is **not** a boundary against a compromised harness process. If the pr
 RiskProof protects tool calls that traverse the supported pipeline:
 
 - `tools/pre-execute` — the allow / ask / deny gate before dispatch
+- `tools/post-execute` — sensitive output control before model-visible results are committed
 - `tools/result` — the observe-only success notification that updates provenance and toolchain state
 
 Both native tool calling and Code Mode sub-dispatches re-enter this pipeline, so both are covered. A tool that the harness executes outside this pipeline is not observed.
@@ -49,7 +54,7 @@ Taint detection is pattern-based and additive. It can be evaded by an adversary 
 
 ### Proofs
 
-Proofs are audit evidence of RiskProof's own decision, not proof that a real-world side effect did or did not occur. A `deny` proof means the call was blocked at the pipeline; a successful tool result is not proof that its external effect happened.
+Proofs are audit evidence of RiskProof's own decision, not proof that a real-world side effect did or did not occur. In enforce mode, a `deny` gate receipt records a call stopped before execution. An output block happens after the tool body has run and does not undo its side effects. Observe mode records recommendations without RiskProof blocking; a successful tool result is not proof that its external effect happened.
 
 Optional JSONL persistence contains redacted decision metadata, source ids, and taint labels, not raw arguments or results. New files use mode `0600`; deployers must secure the parent directory and define rotation, retention, and backup policies.
 

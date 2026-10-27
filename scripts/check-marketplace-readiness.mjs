@@ -45,6 +45,10 @@ requireCondition(
   "the prebuilt dist directory must be included in the npm file set",
 );
 requireCondition(
+  manifest.bin?.["riskproof-demo"] === "./dist/demo.js",
+  "the standalone synthetic rehearsal must declare its prebuilt npm command",
+);
+requireCondition(
   manifest.scripts?.prepare === "npm run build",
   "prepare must build source installs",
 );
@@ -82,7 +86,7 @@ for (const dependency of [
   "@deepseek-ai/dsh-tools",
 ]) {
   const range = manifest.peerDependencies?.[dependency] ?? "";
-  for (const prereleaseLine of ["0.1.0-", "0.1.1-", "0.1.2-"]) {
+  for (const prereleaseLine of ["0.1.0-", "0.1.1-", "0.1.2-", "0.2.1-"]) {
     requireCondition(
       range.includes(prereleaseLine),
       `${dependency} must explicitly admit the DSH ${prereleaseLine} prerelease line`,

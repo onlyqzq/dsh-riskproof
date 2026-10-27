@@ -4,6 +4,8 @@ export interface ClientContext {
     list: {
       getSnapshot(): {
         current?: string;
+        /** Newer hosts publish selection ownership separately from the catalog. */
+        byId?: Record<string, { id: string; retainedBy?: { mainView?: number } }>;
       };
       subscribe(callback: () => void): () => void;
     };

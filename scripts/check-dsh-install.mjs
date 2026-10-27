@@ -45,6 +45,23 @@ evidence.lifecycle = lifecycle;
 writeFileSync(join(artifacts, `dsh-install-lifecycle-${versionSuffix}.json`), JSON.stringify(lifecycle, null, 2) + "\n");
 if (!smokePassed(result)) throw new Error(`DSH install check failed (${JSON.stringify(lifecycle)}): ${output}`);
 evidence.checks.push(`${hasSdkRpc ? "sdk RPC" : "legacy base profile"}: real host boot, slash-command discovery/demo, task enforcement, output blocking, report tool, receipts, clean shutdown`);
+// A boot marker alone does not prove that the dashboard's optional transport
+// fiber registered a route. Exercise the exact installed package over HTTP.
+const httpPatch = join(testHome, "dashboard-http.patch.yml");
+const legacyHmr = evidence.dsh.startsWith("0.1.")
+  ? readFileSync(join(root, "scripts/fixtures/ci-web-boot.patch.yml"), "utf8")
+  : "";
+writeFileSync(httpPatch, legacyHmr + `- insert:\n    - id: riskproof-dashboard-http-fixture\n      name: ${JSON.stringify(join(root, "scripts/fixtures/dashboard-http.mjs"))}\n`);
+const webArgs = ["--profile", "web", "--patch", httpPatch, "--port", "0"];
+if (evidence.dsh !== "0.1.0-rc.7") webArgs.push("--no-open");
+const httpResult = await runSmokeProcess(dsh, webArgs, { env, shutdown: "sigterm", timeoutMs: 30000 });
+const { output: httpOutput, ...httpLifecycle } = httpResult;
+const redactedHttpOutput = httpOutput.replace(/\?token=\S+/g, "?token=[REDACTED]");
+writeFileSync(join(artifacts, `dsh-dashboard-http-${versionSuffix}.log`), redactedHttpOutput);
+writeFileSync(join(artifacts, `dsh-dashboard-http-lifecycle-${versionSuffix}.json`), JSON.stringify(httpLifecycle, null, 2) + "\n");
+evidence.dashboardHttp = httpLifecycle;
+if (!smokePassed(httpResult)) throw new Error(`DSH dashboard HTTP check failed (${JSON.stringify(httpLifecycle)}): ${redactedHttpOutput}`);
+evidence.checks.push("web HTTP: dashboard RPC snapshot, zero tool activity, cross-site rejection, host browser authentication where supported, clean shutdown");
 evidence.webBrowser = "Not covered: run a Web/browser check separately.";
 writeFileSync(join(artifacts, "dsh-install-check.json"), JSON.stringify(evidence, null, 2) + "\n");
 writeFileSync(join(artifacts, `dsh-install-check-${versionSuffix}.json`), JSON.stringify(evidence, null, 2) + "\n");

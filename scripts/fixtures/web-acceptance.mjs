@@ -17,7 +17,8 @@ class LocalTestAdapter extends LlmAdapter {
     const userIndex = options.messages.findLastIndex(message => message.source?.kind === 'user');
     const last = options.messages[userIndex];
     const text = last?.content?.filter(b => b.type === 'text').map(b => b.text).join(' ') ?? '';
-    const hasResult = options.messages.slice(userIndex + 1).some(message => message.content.some(b => b.type === 'tool-result'));
+    const hasResult = options.messages.slice(userIndex + 1).some(message => message.role === 'tool'
+      || message.content.some(b => b.type === 'tool-result'));
     let call;
     if (!hasResult && text.includes('查看报告')) call = ['riskproof_report', { view: 'trace' }];
     if (!hasResult && text.includes('网页读取测试')) call = ['riskproof_acceptance_web_fetch', {}];

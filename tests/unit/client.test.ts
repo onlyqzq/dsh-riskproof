@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apply } from "../../src/client/panel.js";
+import type { ClientContext } from "../../src/client/context.js";
 import { dashboard, type Dashboard } from "../../src/experience/dashboard.js";
 import { RiskProofRuntime } from "../../src/dsh/runtime.js";
 import { makeMockCtx } from "../dsh-mocks.js";
@@ -8,13 +9,13 @@ import { makeMockCtx } from "../dsh-mocks.js";
 const base = (): Dashboard => dashboard(new RiskProofRuntime(makeMockCtx()).report("a"), "a");
 const $ = (selector: string) => document.querySelector<HTMLElement>(selector)!;
 const settle = async () => { await vi.advanceTimersByTimeAsync(0); };
-function mount(response = base()) {
+function mount(response = base(), readSelection?: ClientContext["sessions"]["list"]["getSnapshot"]) {
   let current: string | undefined = "a"; let subscription = () => {}; let dispose = () => {};
   const events = new Map<string, (...args: unknown[]) => void>();
-  const call = vi.fn(async () => ({ ok: true, value: response }));
+  const call = vi.fn(async (_channel: string, _endpoint: string, _payload: unknown, _signal?: AbortSignal) => ({ ok: true, value: response }));
   const unsubscribe = vi.fn();
   apply({
-    sessions: { list: { getSnapshot: () => ({ current }), subscribe: callback => { subscription = callback; return unsubscribe; } } },
+    sessions: { list: { getSnapshot: readSelection ?? (() => ({ current })), subscribe: callback => { subscription = callback; return unsubscribe; } } },
     connection: { rpc: { call } },
     on: (event, callback) => events.set(event, callback),
     effect: callback => { dispose = callback(); },
@@ -22,7 +23,7 @@ function mount(response = base()) {
   return { call, events, dispose: () => dispose(), unsubscribe, select: (id?: string) => { current = id; subscription(); } };
 }
 beforeEach(() => { vi.useFakeTimers(); Object.defineProperty(document, "hidden", { configurable: true, value: false }); });
-afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); document.body.replaceChildren(); document.head.replaceChildren(); });
+afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); document.body.replaceChildren(); document.head.replaceChildren(); });
 
 describe("live beacon safety and lifecycle", () => {
   it("stays closed during actual updates, renders bounded text safely, and clears command content", async () => {
@@ -87,6 +88,7 @@ describe("live beacon safety and lifecycle", () => {
     state.proofEnabled = false; await vi.advanceTimersByTimeAsync(1000);
     expect($('.rp-total strong').textContent).toBe('—'); expect($('.rp-notice').textContent).toContain('记录已关闭');
     expect($('.rp-empty strong').textContent).toBe('证据记录已关闭');
+    expect($('.rp-start').hidden).toBe(true);
     state.proofEnabled = true; state.partial = false; state.counts.pending = 1; await vi.advanceTimersByTimeAsync(1000);
     expect($('.rp-root').dataset.state).toBe('working');
     state.counts.pending = 0; state.counts.attention = 1; await vi.advanceTimersByTimeAsync(1000);
@@ -98,6 +100,7 @@ describe("live beacon safety and lifecycle", () => {
     state.sessionId = null; ui.select(); await settle(); expect($('.rp-brand small').textContent).toContain('请选择对话');
     expect($('.rp-root').dataset.state).toBe('idle');
     expect($('.rp-data').hidden).toBe(true);
+    expect($('.rp-start').hidden).toBe(true);
     expect($('.rp-retry').hidden).toBe(true);
     ui.dispose();
   });
@@ -120,6 +123,9 @@ describe("live beacon safety and lifecycle", () => {
     expect($('.rp-brand small').textContent).toBe('Waiting for tool calls');
     expect($('.rp-beacon').getAttribute('aria-label')).toContain('View security overview');
     expect($('.rp-empty strong').textContent).toBe('Waiting for the first tool record');
+    expect($('.rp-start-title').textContent).toBe('Get started with RiskProof');
+    expect($('.rp-start-note').textContent).toContain('does not verify current settings');
+    expect($('.rp-copy[data-command="demo"]').getAttribute('aria-label')).toBe('Copy /riskproof demo');
     expect($('.rp-legend').textContent).toContain('Needs attention');
     expect($('.rp-activity').getAttribute('aria-label')).toContain('real tool checks');
     state.taskMode = 'read-only'; state.mode = 'observe';
@@ -167,6 +173,141 @@ describe("live beacon safety and lifecycle", () => {
     const state = base(); delete state.health;
     const ui = mount(state); await settle();
     expect($('.rp-health').hidden).toBe(true);
+    ui.dispose();
+  });
+  it("introduces an empty conversation without dispatching a command and copies only the selected fixed command", async () => {
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    const state = base(); const ui = mount(state);
+    expect($('.rp-start').hidden).toBe(true);
+    await settle();
+    expect($('.rp-panel').hidden).toBe(true);
+    expect($('.rp-start').hidden).toBe(false);
+    expect($('.rp-start-title').textContent).toBe('开始使用 RiskProof');
+    expect($('.rp-start-intro').textContent).toContain('粘贴到对话输入框');
+    expect($('.rp-start-note').textContent).toContain('不验证当前配置');
+    const calls = ui.call.mock.calls.length;
+    $('.rp-copy[data-command="demo"]').click(); await settle();
+    expect(writeText).toHaveBeenCalledExactlyOnceWith('/riskproof demo');
+    expect($('.rp-copy-status').textContent).toContain('已复制 /riskproof demo');
+    expect(ui.call.mock.calls).toHaveLength(calls);
+    expect($('.rp-details pre').textContent).toBe('');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-copy-status').textContent).toContain('已复制 /riskproof demo');
+    expect(state.counts.checked).toBe(0);
+    state.language = 'en'; await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-copy-status').textContent).toContain('Copied /riskproof demo');
+    $('.rp-copy[data-command="doctor"]').click(); await settle();
+    expect(writeText).toHaveBeenLastCalledWith('/riskproof doctor');
+    expect($('.rp-copy-status').textContent).toContain('Copied /riskproof doctor');
+    state.counts.checked = 1; state.counts.clear = 1;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-start').hidden).toBe(true);
+    $('.rp-copy[data-command="demo"]').click(); await settle();
+    expect(writeText).toHaveBeenCalledTimes(2);
+    ui.dispose();
+  });
+  it("keeps commands selectable and explains manual copy when the clipboard is unavailable or denied", async () => {
+    vi.stubGlobal('navigator', {});
+    const state = base(); const ui = mount(state); await settle();
+    $('.rp-copy[data-command="demo"]').click(); await settle();
+    expect($('.rp-copy-status').textContent).toContain('请选中上方 /riskproof demo 手动复制');
+    expect($('.rp-start-action code').textContent).toBe('/riskproof demo');
+    const writeText = vi.fn(async () => { throw new Error('denied'); });
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    state.language = 'en'; await vi.advanceTimersByTimeAsync(1000);
+    $('.rp-copy[data-command="doctor"]').click(); await settle();
+    expect(writeText).toHaveBeenCalledExactlyOnceWith('/riskproof doctor');
+    expect($('.rp-copy-status').textContent).toContain('Select /riskproof doctor above');
+    expect(($('.rp-copy[data-command="doctor"]') as HTMLButtonElement).disabled).toBe(false);
+    ui.dispose();
+  });
+  it("discards clipboard feedback across session switches and disposal, and hides onboarding while offline", async () => {
+    let finish = () => {};
+    const writeText = vi.fn(() => new Promise<void>(resolve => { finish = resolve; }));
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    const ui = mount(); await settle();
+    $('.rp-copy[data-command="demo"]').click();
+    expect(($('.rp-copy[data-command="demo"]') as HTMLButtonElement).disabled).toBe(true);
+    expect($('.rp-copy[data-command="demo"]').textContent).toBe('复制中…');
+    ui.call.mockResolvedValue({ ok: true, value: { ...base(), sessionId: 'b' } });
+    ui.select('b'); await settle();
+    finish(); await settle();
+    expect($('.rp-copy-status').textContent).toBe('');
+    expect(($('.rp-copy[data-command="demo"]') as HTMLButtonElement).disabled).toBe(false);
+    ui.call.mockRejectedValue(new Error('offline')); await vi.advanceTimersByTimeAsync(1000);
+    expect($('.rp-start').hidden).toBe(true);
+    $('.rp-copy[data-command="doctor"]').click();
+    expect(writeText).toHaveBeenCalledOnce();
+    ui.call.mockResolvedValue({ ok: true, value: { ...base(), sessionId: 'b' } });
+    $('.rp-retry').click(); await settle();
+    $('.rp-copy[data-command="doctor"]').click();
+    const status = $('.rp-copy-status');
+    ui.dispose(); finish(); await settle();
+    expect(status.textContent).toBe('');
+    expect(document.querySelector('.rp-root')).toBeNull();
+  });
+  it("follows modern mainView ownership without opening catalog sessions or retaining stale data", async () => {
+    const catalog = {
+      byId: {
+        other: { id: 'other', retainedBy: { mainView: 0 } },
+        a: { id: 'a', retainedBy: { mainView: 1 } },
+        b: { id: 'b', retainedBy: { mainView: 0 } },
+      },
+    };
+    const ui = mount(base(), () => catalog); await settle();
+    expect(ui.call.mock.calls[0][2]).toEqual({ sessionId: 'a' });
+    expect($('.rp-data').hidden).toBe(false);
+    catalog.byId.a.retainedBy.mainView = 0;
+    catalog.byId.b.retainedBy.mainView = 1;
+    ui.call.mockResolvedValue({ ok: true, value: { ...base(), sessionId: 'b' } });
+    ui.select();
+    expect($('.rp-data').hidden).toBe(true);
+    await settle();
+    expect(ui.call.mock.calls.at(-1)?.[2]).toEqual({ sessionId: 'b' });
+    expect($('.rp-data').hidden).toBe(false);
+    catalog.byId.b.retainedBy.mainView = 0;
+    ui.call.mockResolvedValue({ ok: true, value: { ...base(), sessionId: null } });
+    ui.select(); await settle();
+    expect(ui.call.mock.calls.at(-1)?.[2]).toEqual({ sessionId: null });
+    expect($('.rp-data').hidden).toBe(true);
+    expect($('.rp-brand small').textContent).toBe('请选择对话');
+    ui.dispose();
+  });
+  it("uses a legal API target and caches a working legacy route across polls and session switches", async () => {
+    const ui = mount(); await settle();
+    expect(ui.call.mock.calls[0].slice(0, 2)).toEqual(['/api', 'riskproof/status']);
+    ui.call.mockImplementation(async (channel, _endpoint, payload) => ({
+      ok: channel === '/riskproof', value: { ...base(), sessionId: (payload as { sessionId: string }).sessionId },
+    }));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(ui.call.mock.calls.slice(-2).map(call => call.slice(0, 2))).toEqual([
+      ['/api', 'riskproof/status'], ['/riskproof', 'status'],
+    ]);
+    expect($('.rp-root').dataset.state).toBe('ready');
+    const calls = ui.call.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(ui.call.mock.calls).toHaveLength(calls + 2);
+    expect(ui.call.mock.calls.slice(-2).every(call => call[0] === '/riskproof')).toBe(true);
+    ui.select('b'); await settle();
+    expect(ui.call.mock.calls.at(-1)?.slice(0, 2)).toEqual(['/riskproof', 'status']);
+    expect($('.rp-data').hidden).toBe(false);
+    ui.dispose();
+  });
+  it("limits failed route discovery to once per 30 seconds and permits explicit reconnect", async () => {
+    const ui = mount(); await settle();
+    ui.call.mockRejectedValue(new Error('offline'));
+    const alternateCalls = () => ui.call.mock.calls.filter(call => call[0] === '/riskproof').length;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(alternateCalls()).toBe(1);
+    expect($('.rp-root').dataset.state).toBe('offline');
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(alternateCalls()).toBe(1);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(alternateCalls()).toBe(2);
+    $('.rp-retry').click(); await settle();
+    expect(alternateCalls()).toBe(3);
+    expect($('.rp-data').hidden).toBe(true);
     ui.dispose();
   });
   it("falls back to the document language for older snapshots without a language field", async () => {

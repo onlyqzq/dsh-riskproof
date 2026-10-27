@@ -9,6 +9,12 @@ interface PanelState {
   loading: boolean;
   pulseUntil: number;
   reconnecting: boolean;
+  commandCopy?: CommandCopy;
+}
+
+export interface CommandCopy {
+  command: "demo" | "doctor";
+  result: "copying" | "copied" | "manual";
 }
 
 const colors = { clear: "#22866c", blocked: "#cc6655", attention: "#b67723" };
@@ -33,7 +39,7 @@ export function createPanelView() {
 
   let language = document.documentElement.lang.toLowerCase().startsWith("en") ? "en" : "zh-CN";
 
-  function render({ current, data, connected, loading, pulseUntil, reconnecting }: PanelState) {
+  function render({ current, data, connected, loading, pulseUntil, reconnecting, commandCopy }: PanelState) {
     // Keep the last known language through disconnects and session switches.
     if (data?.language === "en" || data?.language === "zh-CN") language = data.language;
     const t = (cn: string, en: string) => language === "en" ? en : cn;
@@ -69,9 +75,27 @@ export function createPanelView() {
     retry.disabled = reconnecting;
     retry.textContent = reconnecting ? t("正在重连…", "Reconnecting…") : t("重新连接", "Reconnect");
     find<HTMLElement>(".rp-data").hidden = !current || !connected || !data;
+    find<HTMLElement>(".rp-start").hidden = !current || !connected || !data?.proofEnabled || data.counts.checked > 0;
     if (!current || !data || !connected) return;
 
     const counts = data.counts;
+    find(".rp-start-title").textContent = t("开始使用 RiskProof", "Get started with RiskProof");
+    find(".rp-start-intro").textContent = t("复制命令，粘贴到对话输入框后发送。", "Copy a command, paste it into the conversation composer and send it.");
+    find(".rp-start-demo").textContent = t("用合成数据了解四种风险规则", "Explore four risk rules with synthetic data");
+    find(".rp-start-doctor").textContent = t("检查当前已加载配置及修复建议", "Check loaded settings and recommended fixes");
+    find(".rp-start-note").textContent = t("演练不执行工具、不计入真实拦截，也不验证当前配置。日常工具调用会自动更新概览。", "The rehearsal dispatches no tools, adds no live counts and does not verify current settings. Ordinary tool calls update this overview automatically.");
+    for (const command of ["demo", "doctor"] as const) {
+      const button = find<HTMLButtonElement>(`.rp-copy[data-command="${command}"]`);
+      const copying = commandCopy?.command === command && commandCopy.result === "copying";
+      button.disabled = copying;
+      button.textContent = copying ? t("复制中…", "Copying…") : t("复制", "Copy");
+      button.setAttribute("aria-label", t(`复制 /riskproof ${command}`, `Copy /riskproof ${command}`));
+    }
+    const copyStatus = commandCopy?.result === "copied"
+      ? t(`已复制 /riskproof ${commandCopy.command}；粘贴到对话输入框后发送。`, `Copied /riskproof ${commandCopy.command}; paste it into the conversation composer and send it.`)
+      : commandCopy?.result === "manual" ? t(`无法自动复制，请选中上方 /riskproof ${commandCopy.command} 手动复制。`, `Automatic copy is unavailable. Select /riskproof ${commandCopy.command} above and copy it manually.`) : "";
+    // Polling must not repeatedly announce an unchanged clipboard result.
+    if (find(".rp-copy-status").textContent !== copyStatus) find(".rp-copy-status").textContent = copyStatus;
     const task = data.taskMode === "read-only" ? t("只读任务", "Read-only task") : data.taskMode === "local-only" ? t("本地任务", "Local-only task") : t("常规任务", "Standard task");
     find(".rp-scope").textContent = t(`任务范围：${task} · ${data.mode === "observe" ? "观察模式" : "执行防护"}`, `Task scope: ${task} · ${data.mode === "observe" ? "Observe mode" : "Execution protection"}`);
     find(".rp-footnote").textContent = t(`仅统计本次运行保留的当前会话记录（最多 ${data.limit} 条）。未触发规则不代表绝对安全。`, `Counts cover retained records for this conversation in this run (global limit ${data.limit}). No triggered rule does not establish safety.`);

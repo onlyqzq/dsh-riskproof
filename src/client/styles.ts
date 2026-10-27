@@ -535,6 +535,66 @@ export const styles = `
   margin: 0 0 14px;
 }
 
+.rp-start {
+  border: 1px solid var(--rp-line);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0 0 18px;
+}
+
+.rp-start-title {
+  margin: 0 0 5px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rp-start p {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rp-start-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.rp-start-action code {
+  font-size: 11px;
+  user-select: all;
+}
+
+.rp-start-action p,.rp-start-note {
+  opacity: .7;
+}
+
+.rp-copy {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--rp-line);
+  border-radius: 7px;
+  background: var(--rp-bg);
+  font-size: 11px!important;
+}
+
+.rp-copy:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.rp-start .rp-copy-status:not(:empty),.rp-start .rp-start-note {
+  margin-top: 10px;
+}
+
+.rp-copy-status {
+  color: var(--rp-green);
+}
+
 .rp-footnote {
   margin: 14px 0 0;
   padding-top: 12px;

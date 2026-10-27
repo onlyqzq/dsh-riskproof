@@ -1,17 +1,37 @@
 # Installation and first use
 
+## Try without a DSH profile
+
+With Node.js 22.19+, run:
+
+```bash
+npx --yes --package=dsh-riskproof@0.7.0 riskproof-demo --language en
+```
+
+Use `--language zh-CN` for Chinese or `--json` for structured output. npm downloads
+the package and dependencies; the installed rehearsal uses local synthetic data
+and the default balanced policy. It makes no host/model requests, reads no private
+files and executes no tool bodies. It does not activate protection or check a live
+configuration. All four cases should show `✓` and `deny`; a failed check exits with
+code 1. Continue below to install real DSH protection.
+
 ## Install or update from npm
 
 Node.js 22.19+ and `dsh` / `pnpm` on PATH are required:
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.6.0
+dsh plugin --profile web add dsh-riskproof@0.7.0
 ```
 
 The prebuilt npm package needs no local compilation. DSH supplies the official peer
 runtime packages. Missing-peer warnings from profile pnpm are not by themselves a
 startup failure; don't install duplicate private Cordis/DSH runtimes into the profile.
 Restart your DSH profile after installing or updating.
+
+The overview inherits the host's transport protections. Early 0.1.0-rc.7/rc.8
+hosts use their native loopback/Origin fence; 0.1.2 and 0.2 hosts provide browser
+authentication, and the newer exact route is restricted to owner Peers where
+the host supports them. RiskProof does not create a separate authentication system.
 
 ## Build a local package
 
@@ -21,7 +41,7 @@ From a repository checkout:
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.6.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.7.0.tgz
 dsh --profile web --dump-config
 ```
 
@@ -130,7 +150,7 @@ For a manual check with your own model configuration:
 
 ```bash
 # Pick a fresh directory for each rebuilt tarball to avoid package-manager cache reuse.
-DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.6.0.tgz
+DSH_HOME=/tmp/riskproof-web-manual dsh plugin --profile web add ./artifacts/dsh-riskproof-0.7.0.tgz
 DSH_HOME=/tmp/riskproof-web-manual dsh --profile web --no-open --port 19843
 ```
 

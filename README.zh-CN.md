@@ -7,12 +7,27 @@ RiskProof 为 DeepSeek Harness 追踪跨工具数据流、拦截敏感工具输�
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
+[![npm 版本](https://img.shields.io/npm/v/dsh-riskproof)](https://www.npmjs.com/package/dsh-riskproof) [![CI](https://github.com/onlyqzq/dsh-riskproof/actions/workflows/ci.yml/badge.svg)](https://github.com/onlyqzq/dsh-riskproof/actions/workflows/ci.yml)
+
+## 先体验规则，再安装到 DSH
+
+只需 Node.js 22.19+，一条命令运行四项模拟防护：
+
+```bash
+npx --yes --package=dsh-riskproof@0.7.0 riskproof-demo --language zh-CN
+```
+
+无需 DSH profile、模型 API key 或克隆仓库。npm 会下载包；安装后的演练使用默认
+balanced 策略在本地运行，展示网页内容影响命令、客户数据外发、工具 schema 改变和只读
+任务限制。四项均应显示 `✓` 与 `deny`；加 `--json` 可输出结构化结果。演练用于了解规则，
+不启用真实防护，也不验证当前配置。要保护真实工具调用，请继续按下方步骤安装到 DSH。
+
 ## 快速开始
 
 需要 Node.js 22.19+，并已安装 DSH 和 pnpm：
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.6.0
+dsh plugin --profile web add dsh-riskproof@0.7.0
 dsh --profile web --dump-config
 ```
 
@@ -32,11 +47,11 @@ dsh --profile web --dump-config
 | 兼容性 | 已验证范围 |
 | --- | --- |
 | Node.js | 22.19+；具体 CI 矩阵见 [工作流](.github/workflows/ci.yml) |
-| DSH | 安装与工具管线：0.1.0-rc.7、0.1.2-rc.1；Web 验收：0.1.2-rc.1 |
+| DSH | 安装与工具管线：0.1.0-rc.7、0.1.2-rc.1、0.2.1-rc.4；Web：0.1.2-rc.1、0.2.1-rc.4 |
 | 模型 | 确定性规则引擎不需要审查模型或额外 API key |
 | 语言 | 浮标、概览与报告支持中文／英文：`experience.language: zh-CN` 或 `en` |
 
-较新 DSH 版本需要另做兼容性验证。以上版本对应的证据见 [验收记录](docs/v0.3-validation.md)。
+较新 DSH 版本需要另做兼容性验证。历史 0.1 版本证据见 [验收记录](docs/v0.3-validation.md)，当前版本见 [v0.7 验收](docs/growth-plan.zh-CN.md#v07-验收记录)。
 
 ## 从这里开始
 
@@ -81,6 +96,7 @@ dsh --profile web --dump-config
 | 限制为只读任务 | `/riskproof task read-only` |
 | 限制为本地任务 | `/riskproof task local-only` |
 | 恢复常规任务范围 | `/riskproof task standard` |
+| 不执行工具的策略试算 | `/riskproof test <tool> <JSON>` |
 | 可选的四项模拟演练 | `/riskproof demo` |
 
 也可让模型调用 `riskproof_report` 查看原生工具结果卡。浮标通过 DSH 自带的认证连接读取
@@ -147,7 +163,7 @@ RiskProof 是 DSH Tool Runtime 之上的一层安全策略，而不是另一套 
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.6.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.7.0.tgz
 
 # 确认包内 patch 已被组合
 dsh --profile web --dump-config
@@ -155,8 +171,8 @@ dsh --profile web --dump-config
 
 该包声明了 DSH bundle，`plugin add` 自动组合 `riskproof` 行。重启该 profile 后，即可看到常驻安全浮标；点击查看当前对话概览。支持原生命令的界面也可通过 `/` 搜索 RiskProof。
 
-当前版本为 **0.6.0**。完整步骤见 [安装与更新](docs/installation.md)。
-已验证 DSH 0.1.0-rc.7 与 0.1.2-rc.1 的安装、SDK 宿主启动、命令和工具管线；DSH 0.1.2-rc.1 的 Chrome 桌面与窄屏 Web 验收已通过，含真实 Agent 工具管线的来源拦截和只读拦截（本地模拟模型驱动）。详见 [验收记录](docs/v0.3-validation.md) 和 [Web 操作步骤](docs/web-acceptance.zh-CN.md)。
+当前版本为 **0.7.0**。完整步骤见 [安装与更新](docs/installation.md)。
+已验证 DSH 0.1.0-rc.7、0.1.2-rc.1 和 0.2.1-rc.4 的安装、命令、工具管线与 HTTP 路由。DSH 0.1.2-rc.1 中文与 0.2.1-rc.4 英文的 Chrome 桌面和窄屏 Web 验收均通过，含真实 Agent 管线的来源拦截和只读拦截（本地模拟模型驱动）。详见 [v0.7 验收记录](docs/growth-plan.zh-CN.md#v07-验收记录) 和 [Web 操作步骤](docs/web-acceptance.zh-CN.md)。
 
 如需调整，可在随后加载的 profile `cordis.patch.yml` 中覆盖 bundle 行：
 
@@ -334,17 +350,30 @@ RiskProof **不能替代**：
 - 按执行 token 关联门控与最终结果的回执
 - 中间工具结果继承敏感标签；会话隔离与有界状态
 
-### v0.4（当前版本）
+### v0.4（已完成）
 
 - 在结果进入模型上下文前执行输出侧信息流控制
 - 默认拦截凭据输出，并允许配置需拦截的标签
 - 按精确工具名配置可信降密，结果仍敏感时确定性重新加标
 - 在回执中记录脱敏后的输出控制与降密信息
 
+### v0.5–v0.6（已完成）
+
+- 中英文防护检查与配置缺口处理建议
+- 结构化凭据字段识别与不执行工具的策略试算
+
+### v0.7（当前版本）
+
+- 无需 DSH profile 或模型配置的终端演练
+- Web 首次使用的命令引导
+- DSH 0.2 兼容与真实宿主验收矩阵
+- 每周公开下载快照与明确日期的对比窗口
+
 ### 后续
 
 - 更丰富的结构化／语义 DLP 适配
 - 带显式信任边界的跨进程来源追踪
+- 更多真实工具映射与可复现的误报案例
 
 ## 与自动审批插件如何选择
 
@@ -359,6 +388,8 @@ RiskProof 仅对可观测、可匹配的数据流和已配置规则作判断，�
 ## 贡献
 
 欢迎提交 Issue、规则、工具能力映射和误报报告。见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+项目现状、缺口、增长衡量与下一步优先级见 [增长与迭代计划](docs/growth-plan.zh-CN.md)。
 
 如果 RiskProof 对你有帮助，欢迎 [Star 项目](https://github.com/onlyqzq/dsh-riskproof)；
 安装反馈、脱敏误报案例和工具分类贡献同样有助于改进。

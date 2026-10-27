@@ -1,5 +1,16 @@
 # Local demo
 
+To try the policy engine without cloning this repository or setting up a DSH
+profile, use the published synthetic rehearsal:
+
+```bash
+npx --yes --package=dsh-riskproof@0.7.0 riskproof-demo --language en
+```
+
+It exercises four deterministic rules with synthetic inputs; it does not boot a
+host or validate live configuration. `--json` prints structured results. For the
+real ToolRuntime attack-chain demo from a checkout, continue below.
+
 `run-attack-chain.mjs` boots a **real** Cordis context and the **real**
 `@deepseek-ai/dsh-tools` ToolRuntime, registers three mock tools, loads
 RiskProof in `enforce` mode, and drives three real tool executions through

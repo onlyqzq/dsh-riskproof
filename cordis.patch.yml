@@ -2,8 +2,9 @@
 # row over the profile root. Later bundle patches and the user's profile
 # cordis.patch.yml may override this row's `config` (last write wins).
 #
-# RiskProof hooks `tools/pre-execute` (allow/ask/deny before dispatch) and
-# `tools/result` (provenance + toolchain state). It is a passive layer over the
+# RiskProof hooks `tools/pre-execute` (allow/ask/deny before dispatch),
+# `tools/post-execute` (sensitive output control), and `tools/result`
+# (provenance + toolchain state). It is a layer over the
 # Tool Runtime, plus a read-only report tool and an optional native /riskproof
 # command. The command activates when the host commands service is available.
 

@@ -11,6 +11,7 @@
 | [执行前试算 / Policy preview](policy-preview.md) | 不执行工具的规则试算、凭据字段检测与边界 |
 | [配置参考](configuration.md) | 防护模式、策略、输出控制、可信降密和记录上限 |
 | [本地演示](../demo/README.md) | 无需模型的攻击链演示 |
+| [增长与迭代计划](growth-plan.zh-CN.md) | 当前缺口、公开指标、首次体验优化与后续优先级 |
 | [Web 验收步骤](web-acceptance.zh-CN.md) | 浮标、风险概览、会话切换与移动端验证 |
 | [从旧版 MCP 项目迁移](migration-from-riskproof.md) | 旧架构与当前 DSH 插件的区别 |
 

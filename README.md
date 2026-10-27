@@ -7,12 +7,29 @@ A persistent security beacon shows redacted execution receipts. Deterministic ru
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
+[![npm version](https://img.shields.io/npm/v/dsh-riskproof)](https://www.npmjs.com/package/dsh-riskproof) [![CI](https://github.com/onlyqzq/dsh-riskproof/actions/workflows/ci.yml/badge.svg)](https://github.com/onlyqzq/dsh-riskproof/actions/workflows/ci.yml)
+
+## Try the rules before setting up DSH
+
+With Node.js 22.19+, run four synthetic protection examples:
+
+```bash
+npx --yes --package=dsh-riskproof@0.7.0 riskproof-demo --language en
+```
+
+No DSH profile, model API key or repository checkout is needed. npm downloads the
+package; the installed rehearsal runs locally with the default balanced policy.
+It checks web-influenced commands, customer data egress, changed tool schemas and
+read-only task restrictions. All four should show `✓` and `deny`. Use `--json` for
+structured results. This demonstrates the rules; it does not activate protection
+or validate your configuration. Install into DSH below to protect real tool calls.
+
 ## Quick Start
 
 Requires Node.js 22.19+, with DSH and pnpm installed:
 
 ```bash
-dsh plugin --profile web add dsh-riskproof@0.6.0
+dsh plugin --profile web add dsh-riskproof@0.7.0
 dsh --profile web --dump-config
 ```
 
@@ -33,12 +50,12 @@ See [installation and troubleshooting](docs/installation.md) for the complete st
 | Compatibility | Verified scope |
 | --- | --- |
 | Node.js | 22.19+; see the [CI matrix](.github/workflows/ci.yml) |
-| DSH | Install/tool pipeline: 0.1.0-rc.7 and 0.1.2-rc.1; Web acceptance: 0.1.2-rc.1 |
+| DSH | Install/tool pipeline: 0.1.0-rc.7, 0.1.2-rc.1 and 0.2.1-rc.4; Web: 0.1.2-rc.1 and 0.2.1-rc.4 |
 | Model | Deterministic rules need no reviewer model or additional API key |
 | Language | Beacon, overview and reports: `experience.language: en` or `zh-CN` (default) |
 
 Newer DSH versions require separate verification. See [validation evidence](docs/v0.3-validation.md)
-for the tested versions above.
+for the historical 0.1 results and the [v0.7 validation record](docs/growth-plan.zh-CN.md#v07-验收记录) for the current release.
 
 ## Start here
 
@@ -155,7 +172,7 @@ Alternatively, build a local package from the repository root:
 npm ci
 mkdir -p artifacts
 npm pack --pack-destination artifacts
-dsh plugin --profile web add ./artifacts/dsh-riskproof-0.6.0.tgz
+dsh plugin --profile web add ./artifacts/dsh-riskproof-0.7.0.tgz
 
 # confirm the bundled patch was composed
 dsh --profile web --dump-config
@@ -163,11 +180,11 @@ dsh --profile web --dump-config
 
 The package declares a DSH bundle, so `plugin add` composes its `riskproof` row automatically. No second install or manual row is required. Restart the profile to see the beacon, then click it to inspect the current conversation.
 
-The current version is **0.6.0**. See [installation and update instructions](docs/installation.md). Installation, SDK host startup,
-commands and tool execution have been verified on DSH 0.1.0-rc.7 and 0.1.2-rc.1.
-Chrome desktop and narrow-viewport Web acceptance also passed on DSH 0.1.2-rc.1,
+The current version is **0.7.0**. See [installation and update instructions](docs/installation.md). Installation, SDK host startup,
+commands, tool execution and HTTP transport have been verified on DSH 0.1.0-rc.7, 0.1.2-rc.1 and 0.2.1-rc.4.
+Chrome desktop and narrow-viewport Web acceptance also passed on DSH 0.1.2-rc.1 and 0.2.1-rc.4,
 including provenance and read-only denials through the real Agent loop with a local
-simulated model. See [validation evidence](docs/v0.3-validation.md).
+simulated model. See the [current validation record](docs/growth-plan.zh-CN.md#v07-验收记录).
 
 To tune it, override the bundled row from the profile's later `cordis.patch.yml` layer:
 
@@ -345,17 +362,30 @@ See the [documentation index](docs/README.md) for guides, security design and ve
 - Execution-token correlation between policy gates and final results
 - Taint inheritance through intermediate tools; bounded, isolated session state
 
-### v0.4 (current)
+### v0.4 (delivered)
 
 - Output-side information-flow control before results reach model context
 - Default credential-output blocking with configurable label selection
 - Exact-name trusted declassifiers with deterministic re-tainting
 - Redacted output-control and declassification receipts
 
+### v0.5–v0.6 (delivered)
+
+- Bilingual protection checks and actionable configuration guidance
+- Structured credential field detection and side-effect-free policy previews
+
+### v0.7 (current)
+
+- Terminal rehearsal without a DSH profile or model setup
+- First-use command guidance in the Web overview
+- DSH 0.2 compatibility in the real-host validation matrix
+- Weekly public download snapshots with explicit comparison windows
+
 ### Later
 
 - Richer structured/semantic DLP adapters
 - Cross-process provenance with explicit trust boundaries
+- More real-world tool mappings and reproducible false-positive cases
 
 ## Choosing alongside auto-review
 
@@ -371,6 +401,9 @@ configured rules; see the [security model](docs/security-model.md).
 ## Contributing
 
 Issues, rule submissions, tool-capability mappings, and false-positive reports are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+See the [growth and iteration plan](docs/growth-plan.zh-CN.md) for current gaps, public
+measurement and the next priorities.
 
 If RiskProof helps you, a [GitHub star](https://github.com/onlyqzq/dsh-riskproof) helps others discover it.
 Installation feedback, redacted false-positive reports and tool mappings help improve it too.

@@ -221,4 +221,12 @@ npm view dsh-riskproof dist-tags --json
 4. 在候选包上分别验证 `experience.language: zh-CN` / `en`：浮标、风险标题、输出拦截、断线提示和窄屏可读性。
 5. 记录公开指标的采集时间与 npm 窗口，在第 7／30 天复核；统计方法和局限见 [增长验证计划](auto-review-benchmark.zh-CN.md#发布后-30-天如何判断是否有效)。
 
+从 v0.7 起，可运行 `npm run metrics:growth -- --output artifacts/growth/latest.json`，
+或查看每周的 [Public growth snapshot](../.github/workflows/growth.yml) 工作流。
+脚本按完整 UTC 日期比较不重叠的等长窗口；数据缺失时显示 `null` 并退出非零。
+安装演练入口会贡献 npm 下载，指标解释与后续优先级见 [增长与迭代计划](growth-plan.zh-CN.md)。
+
+发布后在空目录执行 `npx --yes --package=dsh-riskproof@版本 riskproof-demo --json`，
+确认四项模拟规则通过，同时核对 DSH profile 的真实安装。终端演练不替代宿主验收。
+
 下载次数不是独立安装人数；不要用未经核实的增长归因或安全承诺更新宣传。

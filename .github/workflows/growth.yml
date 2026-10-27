@@ -1,0 +1,29 @@
+name: Public growth snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 1 * * 2'
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.19'
+      - name: Collect public npm and GitHub counts
+        run: node scripts/growth-metrics.mjs --output "$RUNNER_TEMP/growth.json" --summary "$GITHUB_STEP_SUMMARY"
+      - name: Retain dated public snapshot
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: public-growth-${{ github.run_id }}
+          path: ${{ runner.temp }}/growth.json
+          if-no-files-found: error
+          retention-days: 90

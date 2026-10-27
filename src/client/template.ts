@@ -5,6 +5,10 @@ export const panelTemplate = `<section class="rp-panel" id="riskproof-panel" rol
     <div class="rp-head"><div><div class="rp-eyebrow">RISKPROOF / LIVE</div><h2 class="rp-title">当前对话安全概览</h2></div><button class="rp-close" aria-label="收起安全概览">×</button></div>
     <div class="rp-status-row"><div class="rp-status"></div><button class="rp-retry" hidden>重新连接</button></div><div class="rp-data">
     <p class="rp-scope"></p>
+    <section class="rp-start" aria-labelledby="riskproof-start-title" hidden><h3 id="riskproof-start-title" class="rp-start-title"></h3><p class="rp-start-intro"></p>
+    <div class="rp-start-action"><div><code>/riskproof demo</code><p class="rp-start-demo"></p></div><button class="rp-copy" data-command="demo" type="button"></button></div>
+    <div class="rp-start-action"><div><code>/riskproof doctor</code><p class="rp-start-doctor"></p></div><button class="rp-copy" data-command="doctor" type="button"></button></div>
+    <p class="rp-copy-status" role="status" aria-live="polite"></p><p class="rp-start-note"></p></section>
     <div class="rp-overview"><div class="rp-ring" role="img"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="51" stroke="var(--rp-line)"/><g class="rp-segments"></g></svg><div class="rp-total"><strong>0</strong><span>已检查调用</span></div></div><div class="rp-legend"></div></div>
     <div class="rp-section-label"><span class="rp-activity-label">调用活动</span><small class="rp-activity-limit">最近 24 次</small></div><div class="rp-activity" role="img"></div>
     <div class="rp-section-label"><span class="rp-risks-label">最近风险</span><small class="rp-risk-count"></small></div><div class="rp-risks"></div>

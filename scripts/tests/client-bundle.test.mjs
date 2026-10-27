@@ -51,8 +51,8 @@ test("browser bundle loads, renders safe metadata, switches sessions and dispose
       },
     } },
     connection: { rpc: { call: async (channel, endpoint, payload) => {
-      assert.equal(channel, "/riskproof");
-      assert.equal(endpoint, "status");
+      assert.equal(channel, "/api");
+      assert.equal(endpoint, "riskproof/status");
       return { ok: true, value: { ...snapshot, sessionId: payload.sessionId } };
     } } },
     on: (event, callback) => events.set(event, callback),

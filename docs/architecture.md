@@ -57,6 +57,7 @@ RiskProof is a single Cordis plugin (`dsh-riskproof`) layered over the DSH Tool 
 | Path | Responsibility |
 | ---- | -------------- |
 | `src/index.ts` | Cordis plugin entry: `name`, `inject`, `Config`, `apply`. |
+| `src/demo.ts` | Standalone synthetic rehearsal command; imports the pure engine path without a DSH host. |
 | `src/config.ts` | Schemastery schema; the single source of deployment tunables. |
 | `src/dsh/runtime.ts` | DSH adapter: `ToolExecution` → `ToolSecurityContext` → `PreToolDecision`; `ToolExecutionResult` → state updates. |
 | `src/dsh/decisions.ts` | Decision mapping (`require_approval` ↔ `ask`) and monotonic merge. |
@@ -90,6 +91,12 @@ The display path is `runtime.report()` → `experience/dashboard.ts` → authent
 DSH RPC → `client/panel.ts`. Only redacted metadata reaches the panel. Pre-execution
 denials and post-execution output blocks have distinct receipt labels: blocking a
 result does not imply that the tool body or its side effects never ran.
+
+The dashboard uses the host's exact Fetch registry at `/api/riskproof/status`
+when available, with a bounded RPC envelope and the host's admission checks.
+Early hosts retain their native `/riskproof` channel with loopback authority.
+The client remembers a working target and rate-limits discovery during outages;
+neither status route dispatches tools or changes policy.
 
 ## Rule organization
 

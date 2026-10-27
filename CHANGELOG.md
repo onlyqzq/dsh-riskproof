@@ -6,6 +6,30 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-10-27
+
+- Add the published `riskproof-demo` command: four real-engine synthetic checks
+  without a DSH profile, model key or checkout, with Chinese/English text, JSON
+  results and nonzero failure exit codes. Keep native slash-command output compatible.
+- Guide empty Web conversations with explicit copyable rehearsal and doctor
+  commands. Copying dispatches no commands, changes no policy and adds no records;
+  unavailable clipboard access has a manual fallback.
+- Admit the DSH 0.2.1 prerelease line and extend real installation/boot checks to
+  0.2.1-rc.2 and 0.2.1-rc.4, alongside the existing 0.1 compatibility matrix.
+- Register the dashboard through the host's authenticated exact Fetch route on
+  `/api`, using a legal single-segment RPC channel and a bounded, validated
+  request envelope. Retain the native loopback-fenced channel on older hosts;
+  cache working client routes and limit fallback discovery during outages.
+- Follow the public main-view ownership in DSH 0.2 session catalogs without
+  opening sessions or reading conversation history; retain legacy selection support.
+- Add weekly public npm/GitHub growth snapshots with completed UTC dates,
+  non-overlapping comparison windows and explicit missing-data handling. No
+  plugin-user, tool or session telemetry is collected.
+- Refresh bilingual first-use documentation, package discovery metadata and the
+  delivered roadmap; record the current adoption gaps and public growth baseline.
+- Update Vitest/coverage and compatible development dependency patches to resolve
+  the reported audit findings without upgrading pinned DSH test-host packages.
+
 ## [0.6.0] — 2026-10-23
 
 - Add `/riskproof test <tool> <JSON>` to preview current-session policy,

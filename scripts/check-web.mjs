@@ -18,11 +18,16 @@ const t = (cn, en) => language === 'en' ? en : cn;
 const artifacts = join(root, language === 'en' ? 'artifacts/web/en' : 'artifacts/web'); mkdirSync(artifacts, { recursive: true });
 const env = { ...process.env, DSH_HOME: home, RISKPROOF_WEB_WORKSPACE: workspace, RISKPROOF_WEB_BODY_MARKER: join(home, 'unexpected-tool-body.txt') };
 const cli = process.env.DSH_BIN ?? 'dsh';
+const version = spawnSync(cli, ['--version'], { env, encoding: 'utf8', timeout: 10000 });
+assert.equal(version.status, 0, version.stderr + version.stdout);
+const hostVersion = version.stdout.trim();
 const install = spawnSync(cli, ['plugin', '--profile', 'web', 'add', tarball], { env, encoding: 'utf8', timeout: 60000 });
 assert.equal(install.status, 0, install.stderr + install.stdout);
 const patch = join(home, 'acceptance.patch.yml');
-// Match CI's host startup fixture so HMR is ready before DSH watches patches.
-const bootPatch = readFileSync(join(root, 'scripts/fixtures/ci-web-boot.patch.yml'), 'utf8');
+// Only the 0.1 hosts need the legacy HMR preload; 0.2 owns dsh-hmr.
+const bootPatch = hostVersion.startsWith('0.1.')
+  ? readFileSync(join(root, 'scripts/fixtures/ci-web-boot.patch.yml'), 'utf8')
+  : '';
 writeFileSync(patch, bootPatch + `- id: riskproof\n  config:\n    experience:\n      language: ${language}\n- id: directory-picker\n  disabled: true\n- id: tools\n  config:\n    mode: native\n- id: session-title-llm\n  disabled: true\n- id: agent-default-model\n  config:\n    provider: riskproof-local-test\n    model: deterministic\n- insert:\n    - id: directory-picker-browse-test\n      name: '@deepseek-ai/dsh-host-directory-picker-browse'\n    - id: ui-directory-picker-browse-test\n      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'\n    - id: riskproof-web-acceptance-fixture\n      name: ${JSON.stringify(join(root, 'scripts/fixtures/web-acceptance.mjs'))}\n`);
 const server = spawn(cli, ['--profile', 'web', '--patch', patch, '--no-open', '--port', '0'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = ''; let browser; let page;
@@ -41,8 +46,8 @@ try {
   });
   browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) });
   const unauthenticated = await browser.newContext();
-  const unauthorized = await unauthenticated.request.post(new URL('/riskproof/status', url).href, { data: { sessionId: null } });
-  assert([401, 403].includes(unauthorized.status()));
+  const unauthorized = await unauthenticated.request.post(new URL('/api/riskproof/status', url).href, { data: { sessionId: null } });
+  assert([401, 403].includes(unauthorized.status()), `Unauthenticated dashboard returned HTTP ${unauthorized.status()}`);
   await unauthenticated.close(); checks.push('Dashboard RPC rejects unauthenticated requests');
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   page.on('pageerror', error => failures.push(error.message));
@@ -64,6 +69,27 @@ try {
   await page.getByText(t('等待第一条工具记录', 'Waiting for the first tool record'), { exact: true }).waitFor();
   assert.match(await page.locator('.rp-scope').innerText(), new RegExp(t('常规任务', 'Standard task')));
   assert.match(await page.locator('.rp-footnote').innerText(), new RegExp(t('未触发规则不代表绝对安全', 'No triggered rule does not establish safety')));
+  const start = page.locator('.rp-start');
+  assert(await start.isVisible());
+  assert.equal(await page.locator('.rp-start-title').textContent(), t('开始使用 RiskProof', 'Get started with RiskProof'));
+  assert.deepEqual(await page.locator('.rp-start code').allTextContents(), ['/riskproof demo', '/riskproof doctor']);
+  assert.match(await page.locator('.rp-start-note').textContent(), new RegExp(t('不验证当前配置', 'does not verify current settings')));
+  await page.getByRole('button', { name: t('复制 /riskproof demo', 'Copy /riskproof demo'), exact: true }).click();
+  // Clipboard access depends on the browser/host origin. Either an honest copy
+  // result or selectable manual fallback is supported; neither dispatches a tool.
+  await page.waitForFunction(text => document.querySelector('.rp-copy-status')?.textContent?.includes(text), '/riskproof demo');
+  const copyStatus = await page.locator('.rp-copy-status').textContent();
+  assert.match(copyStatus, new RegExp(t('已复制|无法自动复制', 'Copied|Automatic copy is unavailable')));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.locator('.rp-copy-status').textContent(), copyStatus);
+  assert.equal(await page.locator('.rp-total strong').textContent(), '0');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await panel.evaluate(element => { element.scrollTop = 0; });
+  assert(await panel.evaluate(element => { const rect = element.getBoundingClientRect(); return rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && element.scrollWidth <= element.clientWidth; }));
+  assert(await start.evaluate(element => element.scrollWidth <= element.clientWidth));
+  await page.screenshot({ path: join(artifacts, '02-empty-onboarding-mobile.png') });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  checks.push('Empty-session bilingual onboarding copies fixed commands or offers manual copy, retains feedback through polling, adds no records and fits a 390px viewport');
   assert(await page.locator('.rp-health').isVisible());
   assert.equal(await page.locator('.rp-health').getAttribute('open'), null);
   assert.equal(await page.locator('.rp-check').count(), 9);
@@ -71,6 +97,7 @@ try {
   await page.getByText(t('尚无保留记录；可以运行 /riskproof demo 了解规则，演练不会验证当前配置。', 'No retained records yet. Try /riskproof demo to learn the rules; rehearsals do not verify current configuration.'), { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, '02-protection-checks.png') });
   await page.locator('.rp-health summary').click();
+  await panel.evaluate(element => { element.scrollTop = 0; });
   await page.screenshot({ path: join(artifacts, '02-empty-overview.png') });
   const close = async () => { await page.getByRole('button', { name: t('收起安全概览', 'Close security overview') }).click(); };
   await close();
@@ -94,6 +121,7 @@ try {
   await reading;
   checks.push('Pending real tool call drives the working state before its execution receipt');
   await page.waitForFunction(() => document.querySelector('.rp-total strong')?.textContent === '1');
+  assert.equal(await start.getAttribute('hidden'), '');
   assert(await panel.isHidden(), 'Tool activity must not open panel');
   await prompt('来源命令测试');
   await page.waitForFunction(() => document.querySelector('.rp-count-blocked')?.textContent === '1');
@@ -148,9 +176,17 @@ try {
   await close();
   for (const mode of ['local-only', 'standard']) { assert((await command('task ' + mode)).includes(mode)); await close(); }
   await prompt('查看报告');
-  await page.getByText('1 次工具调用', { exact: true }).last().click();
-  await page.getByText('riskproof_report · trace', { exact: true }).click();
-  await page.getByText('输出', { exact: true }).last().waitFor();
+  if (hostVersion.startsWith('0.2.')) {
+    await page.getByText('轨迹', { exact: true }).click();
+    await page.getByText(/^riskproof_report(?:\s*\{|$)/).last().waitFor();
+    const receipt = page.getByText(t('🛡 RiskProof · 会话安全账单', '🛡 RiskProof · Session security receipt'), { exact: false }).last();
+    await receipt.waitFor();
+    assert.match(await receipt.innerText(), new RegExp(t('已检查 3', 'Checked 3')));
+  } else {
+    await page.getByText('1 次工具调用', { exact: true }).last().click();
+    await page.getByText('riskproof_report · trace', { exact: true }).click();
+    await page.getByText('输出', { exact: true }).last().waitFor();
+  }
   assert.equal(await page.locator('.rp-total strong').textContent(), '3');
   checks.push('Commands retained as secondary entry; demo and report tool do not inflate real activity');
   await page.reload(); await beacon.waitFor();
@@ -159,6 +195,7 @@ try {
   await page.getByRole('button', { name: /新建会话|新会话/, exact: false }).first().click();
   await page.waitForFunction(() => document.querySelector('.rp-total strong')?.textContent === '0');
   assert.equal(await page.locator('.rp-risk').count(), 0);
+  assert.equal(await start.getAttribute('hidden'), null);
   checks.push('Page reload restores live-server counts; new session never displays previous risks');
   await page.route('**/riskproof/**', async route => {
     const body = route.request().postDataJSON();
@@ -179,7 +216,7 @@ try {
   assert.equal(await page.locator('dialog.riskproof-report-dialog').count(), 0);
   assert.deepEqual(failures, []);
   checks.push('No browser errors, duplicate widgets or legacy modal');
-  const evidence = { language, testedAt: new Date().toISOString(), dsh: spawnSync(cli, ['--version'], { encoding: 'utf8' }).stdout.trim(), browser: browser.version(), sha256: createHash('sha256').update(readFileSync(tarball)).digest('hex'), tarball, home, checks, fixtures: 'Local deterministic model adapter + synthetic tool bodies, real DSH Agent loop, native tools and command UI; no external model requests.' };
+  const evidence = { language, testedAt: new Date().toISOString(), dsh: hostVersion, browser: browser.version(), sha256: createHash('sha256').update(readFileSync(tarball)).digest('hex'), tarball, home, checks, fixtures: 'Local deterministic model adapter + synthetic tool bodies, real DSH Agent loop, native tools and command UI; no external model requests.' };
   writeFileSync(join(artifacts, 'acceptance.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify(evidence, null, 2));
 } catch (error) {

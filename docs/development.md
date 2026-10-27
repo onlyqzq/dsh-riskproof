@@ -20,11 +20,13 @@ npm ci
 | `npm run typecheck` | strict typecheck of `src/` |
 | `npm run typecheck:test` | strict typecheck of `src/` + `tests/` |
 | `npm run check:marketplace` | validate Awesome DSH Plugin-facing package metadata |
-| `npm run verify` | source/test typecheck + package metadata + build + tests + smoke-runner and browser-bundle checks |
+| `npm run verify` | source/test typecheck + metadata + build + tests + smoke-runner, browser-bundle and distribution checks |
 | `npm run test:coverage` | run tests and enforce coverage thresholds |
 | `npm run check:dsh` | install exact tarball, boot the real host, exercise commands and protection |
 | `npm run test:client-bundle` | exercise the built `dist/client.js` host loader, DOM rendering and disposal (run build first) |
 | `npm run test:smoke-runner` | check legacy/RPC shutdown, timeouts and failure handling |
+| `npm run test:distribution` | check the published demo CLI and public-metrics window/error handling |
+| `npm run metrics:growth` | collect public npm/GitHub counts without plugin or session telemetry |
 | `npm run check:web` | isolated real DSH Web + Chrome acceptance; requires Playwright and browser |
 | `npm run pack:smoke` | build + `npm pack --dry-run` |
 
@@ -33,6 +35,7 @@ npm ci
 | Area | Responsibility |
 | ---- | -------------- |
 | `src/index.ts`, `src/config.ts` | Plugin entry and deployment configuration |
+| `src/demo.ts` | Published synthetic rehearsal CLI; no DSH host startup |
 | `src/core/`, `src/classification/` | Pure deterministic policy, types and capability detection; no DSH imports |
 | `src/provenance/`, `src/toolchain/`, `src/proof/` | Bounded provenance, attack-chain state and redacted evidence |
 | `src/dsh/` | DSH lifecycle, commands, report tool and authenticated dashboard RPC |
@@ -87,7 +90,7 @@ npm pack
 Then install into a fresh profile:
 
 ```bash
-DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.6.0.tgz
+DSH_HOME=/tmp/dsh-riskproof-smoke dsh plugin --profile test add ./dsh-riskproof-0.7.0.tgz
 DSH_HOME=/tmp/dsh-riskproof-smoke dsh --profile test --dump-config
 ```
 

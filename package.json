@@ -1,7 +1,7 @@
 {
   "name": "dsh-riskproof",
-  "version": "0.6.0",
-  "description": "Provenance-aware execution and output security for DeepSeek Harness, with visible receipts and trusted declassification.",
+  "version": "0.7.0",
+  "description": "Stop sensitive tool output and risky cross-tool data flows in DeepSeek Harness. Deterministic protection, provenance receipts and a live security beacon.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,7 +37,12 @@
     "tool-security",
     "taint-tracking",
     "execution-security",
-    "policy-engine"
+    "policy-engine",
+    "deepseek",
+    "dsh",
+    "prompt-injection",
+    "data-loss-prevention",
+    "credential-protection"
   ],
   "repository": {
     "type": "git",
@@ -78,7 +83,7 @@
     "typecheck:test": "tsc -p tsconfig.test.json",
     "lint": "npm run typecheck && npm run typecheck:test",
     "check:marketplace": "node scripts/check-marketplace-readiness.mjs",
-    "verify": "npm run lint && npm run check:marketplace && npm run build && npm test && npm run test:smoke-runner && npm run test:client-bundle",
+    "verify": "npm run lint && npm run check:marketplace && npm run build && npm test && npm run test:smoke-runner && npm run test:client-bundle && npm run test:distribution",
     "pack:smoke": "npm run build && npm pack --dry-run",
     "demo": "npm run build && node demo/run-attack-chain.mjs",
     "prepare": "npm run build",
@@ -86,13 +91,15 @@
     "check:dsh": "node scripts/check-dsh-install.mjs",
     "check:web": "node scripts/check-web.mjs",
     "test:smoke-runner": "node --test scripts/tests/smoke-process.test.mjs",
-    "test:client-bundle": "node --test scripts/tests/client-bundle.test.mjs"
+    "test:client-bundle": "node --test scripts/tests/client-bundle.test.mjs",
+    "test:distribution": "node --test scripts/tests/growth-metrics.test.mjs scripts/tests/demo-cli.test.mjs",
+    "metrics:growth": "node scripts/growth-metrics.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-agent": "^0.1.0-rc.7 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
-    "@deepseek-ai/dsh-commands": "^0.1.0-rc.7 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
-    "@deepseek-ai/dsh-tools": "^0.1.0-rc.7 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.7 || ^0.1.1-rc.1 || ^0.1.2-rc.1 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-commands": "^0.1.0-rc.7 || ^0.1.1-rc.1 || ^0.1.2-rc.1 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.7 || ^0.1.1-rc.1 || ^0.1.2-rc.1 || ^0.2.1-rc.2",
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "devDependencies": {
@@ -105,15 +112,18 @@
     "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
     "@deepseek-ai/schemastery": "3.18.2",
     "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "jsdom": "^29.1.1",
     "tsx": "^4.23.0",
     "typescript": "^5.8.0",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-commands": {
       "optional": true
     }
+  },
+  "bin": {
+    "riskproof-demo": "./dist/demo.js"
   }
 }
